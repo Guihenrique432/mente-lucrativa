@@ -13,7 +13,20 @@ import {
   X,
   TrendingUp,
   PackageX,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  History,
 } from "lucide-react";
+
+type TipoMov = "entrada" | "saida";
+type Movimentacao = {
+  id: string;
+  produto_id: string;
+  tipo: TipoMov;
+  quantidade: number;
+  observacao: string | null;
+  data: string;
+};
 
 export const Route = createFileRoute("/_authenticated/estoque")({
   head: () => ({
