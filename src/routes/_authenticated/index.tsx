@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -316,7 +316,10 @@ function Dashboard() {
           <NavTab icon={<Home className="h-5 w-5" />} label="Início" active />
           <NavTab icon={<Receipt className="h-5 w-5" />} label="Movimentos" />
           <FabButton />
-          <NavTab icon={<Boxes className="h-5 w-5" />} label="Estoque" />
+          <Link to="/estoque" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-muted-foreground">
+            <Boxes className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Estoque</span>
+          </Link>
           <NavTab icon={<BarChart3 className="h-5 w-5" />} label="Relatórios" />
         </div>
       </nav>
