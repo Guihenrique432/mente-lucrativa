@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Bell,
@@ -18,6 +18,7 @@ import {
   Plus,
   Boxes,
   LogOut,
+  CheckCircle2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -37,17 +38,70 @@ export const Route = createFileRoute("/_authenticated/")({
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
 
+type Receita = { valor: number; data: string; categoria: string };
+type Despesa = { valor: number; data: string; categoria: string };
+type Produto = { nome: string; quantidade: number; custo: number; preco_venda: number };
+
+function monthRange(d = new Date()) {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const fmt = (x: Date) => x.toISOString().slice(0, 10);
+  return { start: fmt(start), end: fmt(end), daysInMonth: end.getDate(), today: d.getDate() };
+}
+
+function prevMonthRange(d = new Date()) {
+  const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  const end = new Date(d.getFullYear(), d.getMonth(), 0);
+  const fmt = (x: Date) => x.toISOString().slice(0, 10);
+  return { start: fmt(start), end: fmt(end) };
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const [nome, setNome] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [receitasPrev, setReceitasPrev] = useState<Receita[]>([]);
+  const [despesasPrev, setDespesasPrev] = useState<Despesa[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [meta, setMeta] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
+      const m = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       const first =
-        (meta?.full_name || meta?.name || data.user?.email?.split("@")[0] || "").split(" ")[0];
+        (m?.full_name || m?.name || data.user?.email?.split("@")[0] || "").split(" ")[0];
       setNome(first ? first.charAt(0).toUpperCase() + first.slice(1) : "");
     });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const cur = monthRange();
+      const prev = prevMonthRange();
+      const [r, d, rp, dp, p, m] = await Promise.all([
+        supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
+        supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
+        supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
+        supabase.from("despesas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
+        supabase.from("produtos").select("nome,quantidade,custo,preco_venda"),
+        supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (cancelled) return;
+      setReceitas((r.data as Receita[]) ?? []);
+      setDespesas((d.data as Despesa[]) ?? []);
+      setReceitasPrev((rp.data as Receita[]) ?? []);
+      setDespesasPrev((dp.data as Despesa[]) ?? []);
+      setProdutos((p.data as Produto[]) ?? []);
+      setMeta(Number(m.data?.meta_lucro ?? 0));
+      setLoading(false);
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleSignOut() {
@@ -55,16 +109,54 @@ function Dashboard() {
     navigate({ to: "/auth", replace: true });
   }
 
-  // Mock data — banco será conectado nas próximas telas
-  const faturamento = 28450;
-  const despesas = 16230;
-  const lucro = faturamento - despesas;
-  const meta = 15000;
-  const estoque = 12;
-  const progressoMeta = Math.min(100, Math.round((lucro / meta) * 100));
+  const stats = useMemo(() => {
+    const sum = (xs: { valor: number }[]) => xs.reduce((a, b) => a + Number(b.valor || 0), 0);
+    const faturamento = sum(receitas);
+    const desp = sum(despesas);
+    const lucro = faturamento - desp;
+    const fatPrev = sum(receitasPrev);
+    const lucroPrev = fatPrev - sum(despesasPrev);
+    const variacaoLucro = lucroPrev > 0 ? ((lucro - lucroPrev) / lucroPrev) * 100 : lucro > 0 ? 100 : 0;
+    const margem = faturamento > 0 ? (lucro / faturamento) * 100 : 0;
+    const progressoMeta = meta > 0 ? Math.min(100, Math.round((lucro / meta) * 100)) : 0;
+    const health: "saudavel" | "atencao" | "risco" =
+      faturamento === 0 ? "atencao" : margem >= 25 ? "saudavel" : margem >= 10 ? "atencao" : "risco";
 
-  const margem = (lucro / faturamento) * 100;
-  const health = margem >= 25 ? "saudavel" : margem >= 10 ? "atencao" : "risco";
+    const estoqueQtd = produtos.reduce((a, b) => a + (b.quantidade || 0), 0);
+    const estoqueValor = produtos.reduce((a, b) => a + (b.quantidade || 0) * Number(b.custo || 0), 0);
+    const lowStock = produtos.filter((p) => p.quantidade > 0 && p.quantidade <= 5);
+    const outOfStock = produtos.filter((p) => p.quantidade === 0);
+
+    // Top despesa categoria
+    const byCat: Record<string, number> = {};
+    for (const x of despesas) byCat[x.categoria] = (byCat[x.categoria] || 0) + Number(x.valor || 0);
+    const topDesp = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+    const topDespPct = topDesp && faturamento > 0 ? (topDesp[1] / faturamento) * 100 : 0;
+
+    const cur = monthRange();
+    const ritmoDia = cur.today > 0 ? lucro / cur.today : 0;
+    const faltaMeta = Math.max(0, meta - lucro);
+
+    return {
+      faturamento,
+      despesas: desp,
+      lucro,
+      margem,
+      variacaoLucro,
+      progressoMeta,
+      health,
+      estoqueQtd,
+      estoqueValor,
+      lowStock,
+      outOfStock,
+      topDesp,
+      topDespPct,
+      ritmoDia,
+      faltaMeta,
+    };
+  }, [receitas, despesas, receitasPrev, despesasPrev, produtos, meta]);
+
+  const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -85,7 +177,9 @@ function Dashboard() {
               className="relative grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-warning" />
+              {radar.some((r) => r.tone === "danger" || r.tone === "warning") && (
+                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-warning" />
+              )}
             </button>
             <button
               onClick={handleSignOut}
@@ -100,47 +194,80 @@ function Dashboard() {
         <div className="mt-7">
           <p className="text-sm opacity-80">Lucro deste mês</p>
           <div className="mt-1 flex items-end gap-3">
-            <span className="text-4xl font-bold tracking-tight">{BRL(lucro)}</span>
-            <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-success/20 px-2 py-0.5 text-xs font-medium text-success">
-              <TrendingUp className="h-3 w-3" />
-              +8,4%
-            </span>
+            <span className="text-4xl font-bold tracking-tight">{BRL(stats.lucro)}</span>
+            {stats.faturamento > 0 && (
+              <span
+                className={`mb-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  stats.variacaoLucro >= 0 ? "bg-success/20 text-success" : "bg-danger/20 text-danger"
+                }`}
+              >
+                {stats.variacaoLucro >= 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {stats.variacaoLucro >= 0 ? "+" : ""}
+                {stats.variacaoLucro.toFixed(1)}%
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs opacity-70">comparado ao mês anterior</p>
         </div>
       </header>
 
       <section className="-mt-16 px-5">
-        <HealthCard status={health} margem={margem} />
+        <HealthCard status={stats.health} margem={stats.margem} />
       </section>
 
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(faturamento)} tone="accent" />
-          <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(despesas)} tone="danger" />
-          <KpiCard icon={<Target className="h-4 w-4" />} label="Meta do mês" value={`${progressoMeta}%`} sub={BRL(meta)} tone="success" />
-          <KpiCard icon={<Package className="h-4 w-4" />} label="Estoque" value={`${estoque} itens`} sub="R$ 4.820" tone="neutral" />
+          <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
+          <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
+          <KpiCard
+            icon={<Target className="h-4 w-4" />}
+            label="Meta do mês"
+            value={meta > 0 ? `${stats.progressoMeta}%` : "—"}
+            sub={meta > 0 ? BRL(meta) : "Defina sua meta"}
+            tone="success"
+          />
+          <KpiCard
+            icon={<Package className="h-4 w-4" />}
+            label="Estoque"
+            value={`${stats.estoqueQtd} itens`}
+            sub={BRL(stats.estoqueValor)}
+            tone="neutral"
+          />
         </div>
       </section>
 
-      <section className="mt-5 px-5">
-        <div className="rounded-3xl border border-border bg-card p-5" style={{ boxShadow: "var(--shadow-card)" }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Meta do mês</p>
-              <p className="mt-0.5 text-base font-semibold">{BRL(lucro)} de {BRL(meta)}</p>
+      {meta > 0 && (
+        <section className="mt-5 px-5">
+          <div className="rounded-3xl border border-border bg-card p-5" style={{ boxShadow: "var(--shadow-card)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Meta do mês</p>
+                <p className="mt-0.5 text-base font-semibold">{BRL(stats.lucro)} de {BRL(meta)}</p>
+              </div>
+              <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">{stats.progressoMeta}%</span>
             </div>
-            <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">{progressoMeta}%</span>
+            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div className="h-full rounded-full" style={{ width: `${stats.progressoMeta}%`, background: "var(--gradient-success)" }} />
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {stats.faltaMeta > 0 ? (
+                <>
+                  Faltam <span className="font-semibold text-foreground">{BRL(stats.faltaMeta)}</span> para bater a meta.
+                  {stats.ritmoDia > 0 && (
+                    <> Você está no ritmo de <span className="font-semibold text-success">{BRL(stats.ritmoDia)}/dia</span>.</>
+                  )}
+                </>
+              ) : (
+                <>Você já bateu a meta deste mês 🎉</>
+              )}
+            </p>
           </div>
-          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-            <div className="h-full rounded-full" style={{ width: `${progressoMeta}%`, background: "var(--gradient-success)" }} />
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Faltam <span className="font-semibold text-foreground">{BRL(Math.max(0, meta - lucro))}</span> para bater a meta.
-            Você está no ritmo de <span className="font-semibold text-success">R$ 510/dia</span>.
-          </p>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="mt-6 px-5">
         <div className="mb-3 flex items-center justify-between">
@@ -150,14 +277,23 @@ function Dashboard() {
             </span>
             <h2 className="text-base font-bold">Radar do Negócio</h2>
           </div>
-          <button className="text-xs font-medium text-accent">Ver tudo</button>
         </div>
 
         <div className="space-y-3">
-          <RadarItem tone="danger" icon={<TrendingDown className="h-4 w-4" />} title="Seu lucro caiu 12% esta semana" description="Aumento de R$ 1.240 em despesas com fornecedor." cta="Ver detalhes" />
-          <RadarItem tone="warning" icon={<AlertTriangle className="h-4 w-4" />} title="Camiseta Básica acaba em 5 dias" description="Saída média de 3 unidades/dia. Reposição sugerida: 20 un." cta="Repor estoque" />
-          <RadarItem tone="success" icon={<Target className="h-4 w-4" />} title="Você está perto da meta mensal" description="Faltam apenas R$ 2.780 para bater os R$ 15.000." cta="Ver meta" />
-          <RadarItem tone="neutral" icon={<PiggyBank className="h-4 w-4" />} title="Aluguel representa 18% do faturamento" description="Dentro da faixa saudável (até 25%). Continue assim." />
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Carregando seu radar…</p>
+          ) : radar.length === 0 ? (
+            <RadarItem
+              tone="neutral"
+              icon={<Sparkles className="h-4 w-4" />}
+              title="Comece a registrar suas movimentações"
+              description="Adicione receitas, despesas e produtos para ver insights aqui."
+            />
+          ) : (
+            radar.map((r, i) => (
+              <RadarItem key={i} tone={r.tone} icon={r.icon} title={r.title} description={r.description} cta={r.cta} />
+            ))
+          )}
         </div>
       </section>
 
@@ -169,12 +305,7 @@ function Dashboard() {
             </div>
             <div className="flex-1">
               <p className="text-xs font-medium uppercase tracking-wider opacity-70">Assistente Lucro Real</p>
-              <p className="mt-1 text-sm leading-relaxed">
-                Seu maior gasto este mês foi <strong>estoque (38%)</strong>. Reajustar o preço de 2 produtos pode aumentar seu lucro em cerca de <strong>R$ 480</strong>.
-              </p>
-              <button className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-primary">
-                Ver sugestão <ArrowUpRight className="h-3.5 w-3.5" />
-              </button>
+              <p className="mt-1 text-sm leading-relaxed">{buildAssistantMessage(stats)}</p>
             </div>
           </div>
         </div>
@@ -190,6 +321,155 @@ function Dashboard() {
         </div>
       </nav>
     </div>
+  );
+}
+
+type RadarTone = "danger" | "warning" | "success" | "neutral";
+type RadarSpec = { tone: RadarTone; icon: React.ReactNode; title: string; description: string; cta?: string };
+
+function buildRadar(s: ReturnType<typeof computeStatsType>, meta: number): RadarSpec[] {
+  const out: RadarSpec[] = [];
+
+  if (s.faturamento === 0 && s.despesas === 0) return out;
+
+  if (s.lucro < 0) {
+    out.push({
+      tone: "danger",
+      icon: <TrendingDown className="h-4 w-4" />,
+      title: "Suas despesas passaram do faturamento",
+      description: `Você está ${BRL(Math.abs(s.lucro))} no negativo neste mês.`,
+      cta: "Ver despesas",
+    });
+  } else if (s.variacaoLucro < -10 && s.faturamento > 0) {
+    out.push({
+      tone: "danger",
+      icon: <TrendingDown className="h-4 w-4" />,
+      title: `Seu lucro caiu ${Math.abs(s.variacaoLucro).toFixed(0)}% vs. mês anterior`,
+      description: "Olhe suas despesas para entender o que mudou.",
+      cta: "Ver detalhes",
+    });
+  }
+
+  if (s.outOfStock.length > 0) {
+    out.push({
+      tone: "danger",
+      icon: <AlertTriangle className="h-4 w-4" />,
+      title: `${s.outOfStock.length} produto(s) zerados no estoque`,
+      description: s.outOfStock.slice(0, 2).map((p) => p.nome).join(", "),
+      cta: "Repor estoque",
+    });
+  }
+
+  if (s.lowStock.length > 0) {
+    const first = s.lowStock[0];
+    out.push({
+      tone: "warning",
+      icon: <Package className="h-4 w-4" />,
+      title: `${first.nome} com estoque baixo`,
+      description:
+        s.lowStock.length > 1
+          ? `${first.quantidade} un. restantes. Mais ${s.lowStock.length - 1} produto(s) também precisam de atenção.`
+          : `${first.quantidade} un. restantes. Considere repor em breve.`,
+      cta: "Repor estoque",
+    });
+  }
+
+  if (meta > 0) {
+    if (s.progressoMeta >= 100) {
+      out.push({
+        tone: "success",
+        icon: <CheckCircle2 className="h-4 w-4" />,
+        title: "Meta do mês batida!",
+        description: `Você passou de ${BRL(meta)} em lucro. Continue acompanhando.`,
+      });
+    } else if (s.progressoMeta >= 70) {
+      out.push({
+        tone: "success",
+        icon: <Target className="h-4 w-4" />,
+        title: "Você está perto da meta mensal",
+        description: `Faltam ${BRL(s.faltaMeta)} para bater os ${BRL(meta)}.`,
+        cta: "Ver meta",
+      });
+    } else if (s.progressoMeta < 30 && new Date().getDate() > 15) {
+      out.push({
+        tone: "warning",
+        icon: <Target className="h-4 w-4" />,
+        title: "Meta do mês ainda longe",
+        description: `Você está em ${s.progressoMeta}% da meta com o mês já na metade.`,
+      });
+    }
+  }
+
+  if (s.topDesp && s.topDespPct > 0) {
+    const pct = s.topDespPct;
+    const tone: RadarTone = pct > 30 ? "danger" : pct > 20 ? "warning" : "neutral";
+    out.push({
+      tone,
+      icon: <PiggyBank className="h-4 w-4" />,
+      title: `${s.topDesp[0]} representa ${pct.toFixed(0)}% do faturamento`,
+      description:
+        pct > 25
+          ? "Está acima da faixa saudável (até 25%). Vale revisar."
+          : "Dentro da faixa saudável (até 25%). Continue assim.",
+    });
+  }
+
+  if (out.length === 0) {
+    out.push({
+      tone: "success",
+      icon: <CheckCircle2 className="h-4 w-4" />,
+      title: "Seu negócio está em ordem",
+      description: "Nenhum alerta importante por aqui. Bom trabalho!",
+    });
+  }
+
+  return out.slice(0, 4);
+}
+
+// Helper to get the inferred type of `stats` without exporting it
+function computeStatsType() {
+  return {
+    faturamento: 0,
+    despesas: 0,
+    lucro: 0,
+    margem: 0,
+    variacaoLucro: 0,
+    progressoMeta: 0,
+    health: "saudavel" as "saudavel" | "atencao" | "risco",
+    estoqueQtd: 0,
+    estoqueValor: 0,
+    lowStock: [] as Produto[],
+    outOfStock: [] as Produto[],
+    topDesp: undefined as [string, number] | undefined,
+    topDespPct: 0,
+    ritmoDia: 0,
+    faltaMeta: 0,
+  };
+}
+
+function buildAssistantMessage(s: ReturnType<typeof computeStatsType>): React.ReactNode {
+  if (s.faturamento === 0 && s.despesas === 0) {
+    return <>Comece registrando uma <strong>receita</strong> ou <strong>despesa</strong> para eu te ajudar com sugestões.</>;
+  }
+  if (s.lucro < 0) {
+    return (
+      <>
+        Este mês você está <strong>{BRL(Math.abs(s.lucro))}</strong> no negativo. Reduzir{" "}
+        {s.topDesp ? <strong>{s.topDesp[0]}</strong> : "as maiores despesas"} pode reverter o cenário.
+      </>
+    );
+  }
+  if (s.topDesp && s.topDespPct > 20) {
+    return (
+      <>
+        Seu maior gasto este mês foi <strong>{s.topDesp[0]} ({s.topDespPct.toFixed(0)}%)</strong>. Revisar esse custo pode aumentar seu lucro de forma rápida.
+      </>
+    );
+  }
+  return (
+    <>
+      Seu lucro está em <strong>{BRL(s.lucro)}</strong> com margem de <strong>{s.margem.toFixed(0)}%</strong>. Continue acompanhando para manter o ritmo.
+    </>
   );
 }
 
@@ -234,7 +514,7 @@ function KpiCard({ icon, label, value, sub, tone }: { icon: React.ReactNode; lab
   );
 }
 
-function RadarItem({ tone, icon, title, description, cta }: { tone: "danger" | "warning" | "success" | "neutral"; icon: React.ReactNode; title: string; description: string; cta?: string }) {
+function RadarItem({ tone, icon, title, description, cta }: { tone: RadarTone; icon: React.ReactNode; title: string; description: string; cta?: string }) {
   const map = {
     danger: { bg: "bg-danger/10", text: "text-danger" },
     warning: { bg: "bg-warning/20", text: "text-warning-foreground" },
@@ -269,3 +549,6 @@ function FabButton() {
     </button>
   );
 }
+
+// Use ArrowUpRight to avoid unused import warning in strict mode
+void ArrowUpRight;
