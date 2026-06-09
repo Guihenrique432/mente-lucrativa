@@ -71,6 +71,47 @@ export type Database = {
         }
         Relationships: []
       }
+      movimentacoes_estoque: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           created_at: string
@@ -172,7 +213,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -299,6 +340,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      tipo_movimentacao: ["entrada", "saida"],
+    },
   },
 } as const
