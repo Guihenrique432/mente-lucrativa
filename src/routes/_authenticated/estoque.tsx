@@ -416,7 +416,7 @@ function ProdutoForm({
     if (initial) {
       const { error } = await supabase
         .from("produtos")
-        .update({ nome: nomeTrim, quantidade: qt, custo: ct, preco_venda: pv })
+        .update({ nome: nomeTrim, custo: ct, preco_venda: pv })
         .eq("id", initial.id);
       if (error) {
         toast.error("Erro ao salvar");
