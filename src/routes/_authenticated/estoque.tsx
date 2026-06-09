@@ -477,17 +477,29 @@ function ProdutoForm({
             />
           </Field>
 
-          <Field label="Quantidade em estoque">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              value={quantidade}
-              onChange={(e) => setQuantidade(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
-            />
-          </Field>
+          {initial ? (
+            <div className="rounded-xl border border-dashed border-border bg-secondary/40 p-3">
+              <p className="text-xs text-muted-foreground">
+                Estoque atual:{" "}
+                <span className="font-semibold text-foreground">{initial.quantidade} un.</span>
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Para alterar a quantidade, use <strong>Movimentações</strong> (entradas e saídas).
+              </p>
+            </div>
+          ) : (
+            <Field label="Quantidade inicial em estoque">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
+              />
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Custo (R$)">
