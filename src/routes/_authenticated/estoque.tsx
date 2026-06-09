@@ -1,0 +1,513 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Plus,
+  Package,
+  AlertTriangle,
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  TrendingUp,
+  PackageX,
+} from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/estoque")({
+  head: () => ({
+    meta: [
+      { title: "Estoque — Lucro Real" },
+      { name: "description", content: "Cadastre produtos, quantidades, custo e preço de venda. Receba alertas de estoque baixo." },
+    ],
+  }),
+  component: EstoquePage,
+});
+
+const BRL = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
+const LOW_STOCK_THRESHOLD = 5;
+
+type Produto = {
+  id: string;
+  nome: string;
+  quantidade: number;
+  custo: number;
+  preco_venda: number;
+};
+
+function EstoquePage() {
+  const navigate = useNavigate();
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<Produto | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("id,nome,quantidade,custo,preco_venda")
+      .order("nome", { ascending: true });
+    if (error) toast.error("Erro ao carregar estoque");
+    setProdutos((data as Produto[]) ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalItens = produtos.reduce((a, p) => a + (p.quantidade || 0), 0);
+    const valorCusto = produtos.reduce((a, p) => a + p.quantidade * Number(p.custo || 0), 0);
+    const valorVenda = produtos.reduce((a, p) => a + p.quantidade * Number(p.preco_venda || 0), 0);
+    const lucroPotencial = valorVenda - valorCusto;
+    const baixos = produtos.filter((p) => p.quantidade > 0 && p.quantidade <= LOW_STOCK_THRESHOLD);
+    const zerados = produtos.filter((p) => p.quantidade === 0);
+    return { totalItens, valorCusto, valorVenda, lucroPotencial, baixos, zerados };
+  }, [produtos]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return produtos;
+    return produtos.filter((p) => p.nome.toLowerCase().includes(q));
+  }, [produtos, search]);
+
+  async function handleDelete(p: Produto) {
+    if (!confirm(`Excluir "${p.nome}"?`)) return;
+    const { error } = await supabase.from("produtos").delete().eq("id", p.id);
+    if (error) {
+      toast.error("Erro ao excluir produto");
+      return;
+    }
+    toast.success("Produto excluído");
+    load();
+  }
+
+  function openNew() {
+    setEditing(null);
+    setShowForm(true);
+  }
+  function openEdit(p: Produto) {
+    setEditing(p);
+    setShowForm(true);
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-28">
+      <header
+        className="relative px-5 pt-12 pb-20 text-primary-foreground"
+        style={{ background: "var(--gradient-hero)" }}
+      >
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate({ to: "/" })}
+            aria-label="Voltar"
+            className="grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-base font-semibold">Estoque</h1>
+          <button
+            onClick={openNew}
+            aria-label="Novo produto"
+            className="grid h-11 w-11 place-items-center rounded-full bg-white/15 backdrop-blur-md transition hover:bg-white/20"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <p className="text-sm opacity-80">Valor em estoque (custo)</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight">{BRL(stats.valorCusto)}</p>
+          <p className="mt-1 text-xs opacity-70">
+            {stats.totalItens} itens • lucro potencial{" "}
+            <span className="font-semibold">{BRL(stats.lucroPotencial)}</span>
+          </p>
+        </div>
+      </header>
+
+      {(stats.zerados.length > 0 || stats.baixos.length > 0) && (
+        <section className="-mt-12 px-5">
+          <div className="space-y-2">
+            {stats.zerados.length > 0 && (
+              <AlertBanner
+                tone="danger"
+                icon={<PackageX className="h-4 w-4" />}
+                title={`${stats.zerados.length} produto(s) zerados`}
+                description={stats.zerados.slice(0, 3).map((p) => p.nome).join(", ")}
+              />
+            )}
+            {stats.baixos.length > 0 && (
+              <AlertBanner
+                tone="warning"
+                icon={<AlertTriangle className="h-4 w-4" />}
+                title={`${stats.baixos.length} produto(s) com estoque baixo`}
+                description={`Restam até ${LOW_STOCK_THRESHOLD} unidades: ${stats.baixos
+                  .slice(0, 3)
+                  .map((p) => `${p.nome} (${p.quantidade})`)
+                  .join(", ")}`}
+              />
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5 px-5">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar produto..."
+            className="w-full rounded-2xl border border-border bg-card py-3 pl-11 pr-4 text-sm outline-none transition focus:border-accent"
+          />
+        </div>
+      </section>
+
+      <section className="mt-4 px-5">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Carregando produtos…</p>
+        ) : filtered.length === 0 ? (
+          <EmptyState onAdd={openNew} hasSearch={!!search} />
+        ) : (
+          <ul className="space-y-3">
+            {filtered.map((p) => (
+              <ProdutoCard key={p.id} produto={p} onEdit={() => openEdit(p)} onDelete={() => handleDelete(p)} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {showForm && (
+        <ProdutoForm
+          initial={editing}
+          onClose={() => setShowForm(false)}
+          onSaved={() => {
+            setShowForm(false);
+            load();
+          }}
+        />
+      )}
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2.5">
+          <Link to="/" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-muted-foreground">
+            <Package className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Início</span>
+          </Link>
+          <Link to="/estoque" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-accent">
+            <Package className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Estoque</span>
+          </Link>
+        </div>
+      </nav>
+    </div>
+  );
+}
+
+function AlertBanner({
+  tone,
+  icon,
+  title,
+  description,
+}: {
+  tone: "danger" | "warning";
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  const map = {
+    danger: { bg: "bg-danger/10", text: "text-danger", border: "border-danger/20" },
+    warning: { bg: "bg-warning/20", text: "text-warning-foreground", border: "border-warning/30" },
+  }[tone];
+  return (
+    <div className={`flex gap-3 rounded-2xl border ${map.border} ${map.bg} p-3`}>
+      <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${map.text}`}>{icon}</div>
+      <div className="flex-1">
+        <p className={`text-sm font-semibold ${map.text}`}>{title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProdutoCard({
+  produto,
+  onEdit,
+  onDelete,
+}: {
+  produto: Produto;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const lucroUnit = Number(produto.preco_venda || 0) - Number(produto.custo || 0);
+  const margem =
+    produto.preco_venda > 0 ? (lucroUnit / Number(produto.preco_venda)) * 100 : 0;
+
+  const status =
+    produto.quantidade === 0
+      ? { label: "Sem estoque", cls: "bg-danger/10 text-danger" }
+      : produto.quantidade <= LOW_STOCK_THRESHOLD
+      ? { label: "Estoque baixo", cls: "bg-warning/20 text-warning-foreground" }
+      : { label: "Em estoque", cls: "bg-success/15 text-success" };
+
+  return (
+    <li
+      className="rounded-2xl border border-border bg-card p-4"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-sm font-semibold">{produto.nome}</h3>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.cls}`}>
+              {status.label}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {produto.quantidade} un. • custo {BRL(Number(produto.custo))} • venda{" "}
+            {BRL(Number(produto.preco_venda))}
+          </p>
+          {produto.preco_venda > 0 && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-success">
+              <TrendingUp className="h-3 w-3" />
+              Margem {margem.toFixed(0)}% • {BRL(lucroUnit)}/un.
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 gap-1">
+          <button
+            onClick={onEdit}
+            aria-label="Editar"
+            className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            aria-label="Excluir"
+            className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition hover:bg-danger/10 hover:text-danger"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function EmptyState({ onAdd, hasSearch }: { onAdd: () => void; hasSearch: boolean }) {
+  if (hasSearch) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+        <p className="text-sm text-muted-foreground">Nenhum produto encontrado.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent/10 text-accent">
+        <Package className="h-6 w-6" />
+      </div>
+      <h3 className="mt-3 text-base font-semibold">Seu estoque está vazio</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Cadastre seu primeiro produto com quantidade, custo e preço de venda.
+      </p>
+      <button
+        onClick={onAdd}
+        className="mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-primary-foreground"
+        style={{ background: "var(--gradient-hero)" }}
+      >
+        <Plus className="h-3.5 w-3.5" /> Adicionar produto
+      </button>
+    </div>
+  );
+}
+
+function ProdutoForm({
+  initial,
+  onClose,
+  onSaved,
+}: {
+  initial: Produto | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState(initial?.nome ?? "");
+  const [quantidade, setQuantidade] = useState<string>(
+    initial ? String(initial.quantidade) : "0",
+  );
+  const [custo, setCusto] = useState<string>(initial ? String(initial.custo) : "0");
+  const [precoVenda, setPrecoVenda] = useState<string>(
+    initial ? String(initial.preco_venda) : "0",
+  );
+  const [saving, setSaving] = useState(false);
+
+  const lucroUnit = Number(precoVenda || 0) - Number(custo || 0);
+  const margem = Number(precoVenda) > 0 ? (lucroUnit / Number(precoVenda)) * 100 : 0;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const nomeTrim = nome.trim();
+    if (!nomeTrim) {
+      toast.error("Informe o nome do produto");
+      return;
+    }
+    if (nomeTrim.length > 120) {
+      toast.error("Nome muito longo (máx. 120 caracteres)");
+      return;
+    }
+    const qt = Math.max(0, Math.floor(Number(quantidade) || 0));
+    const ct = Math.max(0, Number(custo) || 0);
+    const pv = Math.max(0, Number(precoVenda) || 0);
+
+    setSaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Sessão expirada");
+      setSaving(false);
+      return;
+    }
+
+    if (initial) {
+      const { error } = await supabase
+        .from("produtos")
+        .update({ nome: nomeTrim, quantidade: qt, custo: ct, preco_venda: pv })
+        .eq("id", initial.id);
+      if (error) {
+        toast.error("Erro ao salvar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Produto atualizado");
+    } else {
+      const { error } = await supabase
+        .from("produtos")
+        .insert({
+          user_id: user.id,
+          nome: nomeTrim,
+          quantidade: qt,
+          custo: ct,
+          preco_venda: pv,
+        });
+      if (error) {
+        toast.error("Erro ao cadastrar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Produto cadastrado");
+    }
+    setSaving(false);
+    onSaved();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-t-3xl bg-card p-5 shadow-2xl sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">{initial ? "Editar produto" : "Novo produto"}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <Field label="Nome do produto">
+            <input
+              autoFocus
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              maxLength={120}
+              placeholder="Ex.: Camiseta Básica"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+
+          <Field label="Quantidade em estoque">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Custo (R$)">
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={custo}
+                onChange={(e) => setCusto(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
+              />
+            </Field>
+            <Field label="Preço de venda (R$)">
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={precoVenda}
+                onChange={(e) => setPrecoVenda(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-accent"
+              />
+            </Field>
+          </div>
+
+          {Number(precoVenda) > 0 && (
+            <div className="rounded-xl bg-secondary p-3">
+              <p className="text-xs text-muted-foreground">
+                Lucro por unidade:{" "}
+                <span className={`font-semibold ${lucroUnit >= 0 ? "text-success" : "text-danger"}`}>
+                  {BRL(lucroUnit)}
+                </span>{" "}
+                • Margem <span className="font-semibold">{margem.toFixed(0)}%</span>
+              </p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-full py-3 text-sm font-semibold text-primary-foreground transition disabled:opacity-60"
+            style={{ background: "var(--gradient-hero)" }}
+          >
+            {saving ? "Salvando..." : initial ? "Salvar alterações" : "Cadastrar produto"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
