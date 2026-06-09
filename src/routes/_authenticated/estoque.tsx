@@ -58,6 +58,7 @@ function EstoquePage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Produto | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [movProduto, setMovProduto] = useState<Produto | null>(null);
 
   async function load() {
     setLoading(true);
