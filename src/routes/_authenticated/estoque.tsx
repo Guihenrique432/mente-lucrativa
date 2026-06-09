@@ -560,3 +560,269 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+function MovimentacoesSheet({
+  produto,
+  onClose,
+  onChanged,
+}: {
+  produto: Produto;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [movs, setMovs] = useState<Movimentacao[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tipo, setTipo] = useState<TipoMov>("entrada");
+  const [qt, setQt] = useState<string>("1");
+  const [obs, setObs] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saldoAtual, setSaldoAtual] = useState<number>(produto.quantidade);
+
+  async function load() {
+    setLoading(true);
+    const [movRes, prodRes] = await Promise.all([
+      supabase
+        .from("movimentacoes_estoque")
+        .select("id,produto_id,tipo,quantidade,observacao,data")
+        .eq("produto_id", produto.id)
+        .order("data", { ascending: false })
+        .limit(100),
+      supabase.from("produtos").select("quantidade").eq("id", produto.id).single(),
+    ]);
+    if (movRes.error) toast.error("Erro ao carregar histórico");
+    setMovs((movRes.data as Movimentacao[]) ?? []);
+    if (prodRes.data) setSaldoAtual(Number(prodRes.data.quantidade) || 0);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produto.id]);
+
+  const totais = useMemo(() => {
+    let entradas = 0;
+    let saidas = 0;
+    for (const m of movs) {
+      if (m.tipo === "entrada") entradas += m.quantidade;
+      else saidas += m.quantidade;
+    }
+    return { entradas, saidas };
+  }, [movs]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const quantidade = Math.floor(Number(qt) || 0);
+    if (quantidade <= 0) {
+      toast.error("Informe uma quantidade maior que zero");
+      return;
+    }
+    if (tipo === "saida" && quantidade > saldoAtual) {
+      toast.error(`Saída maior que o saldo atual (${saldoAtual} un.)`);
+      return;
+    }
+    setSaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Sessão expirada");
+      setSaving(false);
+      return;
+    }
+    const { error } = await supabase.from("movimentacoes_estoque").insert({
+      user_id: user.id,
+      produto_id: produto.id,
+      tipo,
+      quantidade,
+      observacao: obs.trim() ? obs.trim().slice(0, 240) : null,
+    });
+    if (error) {
+      toast.error("Erro ao registrar movimentação");
+      setSaving(false);
+      return;
+    }
+    toast.success(tipo === "entrada" ? "Entrada registrada" : "Saída registrada");
+    setQt("1");
+    setObs("");
+    setSaving(false);
+    await load();
+    onChanged();
+  }
+
+  async function handleRemove(m: Movimentacao) {
+    if (!confirm("Excluir esta movimentação? O estoque será ajustado.")) return;
+    const { error } = await supabase.from("movimentacoes_estoque").delete().eq("id", m.id);
+    if (error) {
+      toast.error("Erro ao excluir");
+      return;
+    }
+    toast.success("Movimentação excluída");
+    await load();
+    onChanged();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-md flex-col rounded-t-3xl bg-card shadow-2xl sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 p-5 pb-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Movimentações
+            </p>
+            <h2 className="mt-0.5 truncate text-lg font-bold">{produto.nome}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 px-5">
+          <div className="rounded-xl bg-secondary p-3">
+            <p className="text-[10px] font-medium uppercase text-muted-foreground">Saldo</p>
+            <p className="mt-0.5 text-base font-bold">{saldoAtual}</p>
+          </div>
+          <div className="rounded-xl bg-success/10 p-3">
+            <p className="text-[10px] font-medium uppercase text-success">Entradas</p>
+            <p className="mt-0.5 text-base font-bold text-success">+{totais.entradas}</p>
+          </div>
+          <div className="rounded-xl bg-danger/10 p-3">
+            <p className="text-[10px] font-medium uppercase text-danger">Saídas</p>
+            <p className="mt-0.5 text-base font-bold text-danger">-{totais.saidas}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAdd} className="mx-5 mt-4 rounded-2xl border border-border p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setTipo("entrada")}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition ${
+                tipo === "entrada"
+                  ? "bg-success text-success-foreground"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              <ArrowDownCircle className="h-4 w-4" /> Entrada
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo("saida")}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition ${
+                tipo === "saida"
+                  ? "bg-danger text-danger-foreground"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              <ArrowUpCircle className="h-4 w-4" /> Saída
+            </button>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              value={qt}
+              onChange={(e) => setQt(e.target.value)}
+              placeholder="Qtd"
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+            <input
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              maxLength={240}
+              placeholder="Observação (opcional)"
+              className="col-span-2 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={saving}
+            className="mt-3 w-full rounded-full py-2.5 text-xs font-semibold text-primary-foreground transition disabled:opacity-60"
+            style={{ background: "var(--gradient-hero)" }}
+          >
+            {saving ? "Registrando..." : "Registrar movimentação"}
+          </button>
+        </form>
+
+        <div className="mt-4 flex-1 overflow-y-auto px-5 pb-5">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Histórico
+          </p>
+          {loading ? (
+            <p className="text-xs text-muted-foreground">Carregando…</p>
+          ) : movs.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                Nenhuma movimentação ainda. Registre a primeira acima.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {movs.map((m) => {
+                const isEntrada = m.tipo === "entrada";
+                return (
+                  <li
+                    key={m.id}
+                    className="flex items-start gap-3 rounded-xl border border-border bg-background p-3"
+                  >
+                    <div
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                        isEntrada ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
+                      }`}
+                    >
+                      {isEntrada ? (
+                        <ArrowDownCircle className="h-4 w-4" />
+                      ) : (
+                        <ArrowUpCircle className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">
+                          {isEntrada ? "+" : "-"}
+                          {m.quantidade} un.
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(m.data).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {m.observacao && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {m.observacao}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemove(m)}
+                      aria-label="Excluir"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-danger/10 hover:text-danger"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
