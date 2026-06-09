@@ -268,10 +268,12 @@ function ProdutoCard({
   produto,
   onEdit,
   onDelete,
+  onMovimentar,
 }: {
   produto: Produto;
   onEdit: () => void;
   onDelete: () => void;
+  onMovimentar: () => void;
 }) {
   const lucroUnit = Number(produto.preco_venda || 0) - Number(produto.custo || 0);
   const margem =
@@ -298,8 +300,8 @@ function ProdutoCard({
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {produto.quantidade} un. • custo {BRL(Number(produto.custo))} • venda{" "}
-            {BRL(Number(produto.preco_venda))}
+            <span className="font-semibold text-foreground">{produto.quantidade} un.</span> em estoque • custo{" "}
+            {BRL(Number(produto.custo))} • venda {BRL(Number(produto.preco_venda))}
           </p>
           {produto.preco_venda > 0 && (
             <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-success">
@@ -325,6 +327,13 @@ function ProdutoCard({
           </button>
         </div>
       </div>
+      <button
+        onClick={onMovimentar}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-secondary py-2 text-xs font-semibold text-foreground transition hover:bg-secondary/70"
+      >
+        <History className="h-3.5 w-3.5" />
+        Movimentações
+      </button>
     </li>
   );
 }
