@@ -191,7 +191,13 @@ function EstoquePage() {
         ) : (
           <ul className="space-y-3">
             {filtered.map((p) => (
-              <ProdutoCard key={p.id} produto={p} onEdit={() => openEdit(p)} onDelete={() => handleDelete(p)} />
+              <ProdutoCard
+                key={p.id}
+                produto={p}
+                onEdit={() => openEdit(p)}
+                onDelete={() => handleDelete(p)}
+                onMovimentar={() => setMovProduto(p)}
+              />
             ))}
           </ul>
         )}
@@ -205,6 +211,14 @@ function EstoquePage() {
             setShowForm(false);
             load();
           }}
+        />
+      )}
+
+      {movProduto && (
+        <MovimentacoesSheet
+          produto={movProduto}
+          onClose={() => setMovProduto(null)}
+          onChanged={load}
         />
       )}
 
