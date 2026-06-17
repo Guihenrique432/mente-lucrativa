@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedReceitasRouteImport } from './routes/_authenticated/receitas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -39,15 +40,22 @@ const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   path: '/estoque',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDespesasRoute = AuthenticatedDespesasRouteImport.update({
+  id: '/despesas',
+  path: '/despesas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/receitas': typeof AuthenticatedReceitasRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/': typeof AuthenticatedIndexRoute
@@ -56,19 +64,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/despesas': typeof AuthenticatedDespesasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/receitas': typeof AuthenticatedReceitasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/estoque' | '/receitas'
+  fullPaths: '/' | '/auth' | '/despesas' | '/estoque' | '/receitas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/estoque' | '/receitas' | '/'
+  to: '/auth' | '/despesas' | '/estoque' | '/receitas' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/despesas'
     | '/_authenticated/estoque'
     | '/_authenticated/receitas'
     | '/_authenticated/'
@@ -116,16 +126,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/despesas': {
+      id: '/_authenticated/despesas'
+      path: '/despesas'
+      fullPath: '/despesas'
+      preLoaderRoute: typeof AuthenticatedDespesasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedReceitasRoute: typeof AuthenticatedReceitasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedDespesasRoute: AuthenticatedDespesasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedReceitasRoute: AuthenticatedReceitasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
