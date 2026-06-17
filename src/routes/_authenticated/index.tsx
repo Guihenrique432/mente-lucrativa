@@ -221,22 +221,30 @@ function Dashboard() {
 
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
-          <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
-          <KpiCard
-            icon={<Target className="h-4 w-4" />}
-            label="Meta do mês"
-            value={meta > 0 ? `${stats.progressoMeta}%` : "—"}
-            sub={meta > 0 ? BRL(meta) : "Defina sua meta"}
-            tone="success"
-          />
-          <KpiCard
-            icon={<Package className="h-4 w-4" />}
-            label="Estoque"
-            value={`${stats.estoqueQtd} itens`}
-            sub={BRL(stats.estoqueValor)}
-            tone="neutral"
-          />
+          <Link to="/receitas">
+            <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
+          </Link>
+          <Link to="/despesas">
+            <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
+          </Link>
+          <Link to="/metas">
+            <KpiCard
+              icon={<Target className="h-4 w-4" />}
+              label="Meta do mês"
+              value={meta > 0 ? `${stats.progressoMeta}%` : "—"}
+              sub={meta > 0 ? BRL(meta) : "Defina sua meta"}
+              tone="success"
+            />
+          </Link>
+          <Link to="/estoque">
+            <KpiCard
+              icon={<Package className="h-4 w-4" />}
+              label="Estoque"
+              value={`${stats.estoqueQtd} itens`}
+              sub={BRL(stats.estoqueValor)}
+              tone="neutral"
+            />
+          </Link>
         </div>
       </section>
 
