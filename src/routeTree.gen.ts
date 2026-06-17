@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedReceitasRouteImport } from './routes/_authenticated/receitas'
+import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 
@@ -35,6 +36,11 @@ const AuthenticatedReceitasRoute = AuthenticatedReceitasRouteImport.update({
   path: '/receitas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   id: '/estoque',
   path: '/estoque',
@@ -51,12 +57,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/metas': typeof AuthenticatedMetasRoute
   '/receitas': typeof AuthenticatedReceitasRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/metas': typeof AuthenticatedMetasRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -66,20 +74,22 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/despesas': typeof AuthenticatedDespesasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/receitas': typeof AuthenticatedReceitasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/despesas' | '/estoque' | '/receitas'
+  fullPaths: '/' | '/auth' | '/despesas' | '/estoque' | '/metas' | '/receitas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth' | '/despesas' | '/estoque' | '/receitas' | '/'
+  to: '/auth' | '/despesas' | '/estoque' | '/metas' | '/receitas' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/despesas'
     | '/_authenticated/estoque'
+    | '/_authenticated/metas'
     | '/_authenticated/receitas'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -119,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReceitasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/metas': {
+      id: '/_authenticated/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AuthenticatedMetasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/estoque': {
       id: '/_authenticated/estoque'
       path: '/estoque'
@@ -139,6 +156,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedReceitasRoute: typeof AuthenticatedReceitasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -146,6 +164,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDespesasRoute: AuthenticatedDespesasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedReceitasRoute: AuthenticatedReceitasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
