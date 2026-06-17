@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { BottomNav } from "@/components/BottomNav";
 import {
   Bell,
   TrendingUp,
@@ -221,22 +222,30 @@ function Dashboard() {
 
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
-          <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
-          <KpiCard
-            icon={<Target className="h-4 w-4" />}
-            label="Meta do mês"
-            value={meta > 0 ? `${stats.progressoMeta}%` : "—"}
-            sub={meta > 0 ? BRL(meta) : "Defina sua meta"}
-            tone="success"
-          />
-          <KpiCard
-            icon={<Package className="h-4 w-4" />}
-            label="Estoque"
-            value={`${stats.estoqueQtd} itens`}
-            sub={BRL(stats.estoqueValor)}
-            tone="neutral"
-          />
+          <Link to="/receitas">
+            <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
+          </Link>
+          <Link to="/despesas">
+            <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
+          </Link>
+          <Link to="/metas">
+            <KpiCard
+              icon={<Target className="h-4 w-4" />}
+              label="Meta do mês"
+              value={meta > 0 ? `${stats.progressoMeta}%` : "—"}
+              sub={meta > 0 ? BRL(meta) : "Defina sua meta"}
+              tone="success"
+            />
+          </Link>
+          <Link to="/estoque">
+            <KpiCard
+              icon={<Package className="h-4 w-4" />}
+              label="Estoque"
+              value={`${stats.estoqueQtd} itens`}
+              sub={BRL(stats.estoqueValor)}
+              tone="neutral"
+            />
+          </Link>
         </div>
       </section>
 
@@ -311,18 +320,8 @@ function Dashboard() {
         </div>
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2.5">
-          <NavTab icon={<Home className="h-5 w-5" />} label="Início" active />
-          <NavTab icon={<Receipt className="h-5 w-5" />} label="Movimentos" />
-          <FabButton />
-          <Link to="/estoque" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-muted-foreground">
-            <Boxes className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Estoque</span>
-          </Link>
-          <NavTab icon={<BarChart3 className="h-5 w-5" />} label="Relatórios" />
-        </div>
-      </nav>
+      <BottomNav active="home" />
+
     </div>
   );
 }
