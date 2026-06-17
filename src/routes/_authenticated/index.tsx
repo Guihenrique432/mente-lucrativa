@@ -319,18 +319,8 @@ function Dashboard() {
         </div>
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2.5">
-          <NavTab icon={<Home className="h-5 w-5" />} label="Início" active />
-          <NavTab icon={<Receipt className="h-5 w-5" />} label="Movimentos" />
-          <FabButton />
-          <Link to="/estoque" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-muted-foreground">
-            <Boxes className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Estoque</span>
-          </Link>
-          <NavTab icon={<BarChart3 className="h-5 w-5" />} label="Relatórios" />
-        </div>
-      </nav>
+      <BottomNav active="home" />
+
     </div>
   );
 }
