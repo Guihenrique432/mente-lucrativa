@@ -222,18 +222,8 @@ function EstoquePage() {
         />
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2.5">
-          <Link to="/" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-muted-foreground">
-            <Package className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Início</span>
-          </Link>
-          <Link to="/estoque" className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-accent">
-            <Package className="h-5 w-5" />
-            <span className="text-[10px] font-medium">Estoque</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNav active="estoque" />
+
     </div>
   );
 }
