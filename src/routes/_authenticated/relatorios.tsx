@@ -91,7 +91,16 @@ function RelatoriosPage() {
     return { mensal: months, totalFat, totalDesp, totalLucro, topCategorias };
   }, [receitas, despesas]);
 
-  const PIE_COLORS = ["hsl(var(--accent))", "hsl(var(--danger))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--muted-foreground))"];
+  const colorForCategoria = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("salár") || n.includes("salar") || n.includes("pró-labore") || n.includes("pro-labore") || n.includes("folha"))
+      return "hsl(217 91% 60%)"; // azul
+    if (n.includes("lucro") || n.includes("reserva") || n.includes("investimento"))
+      return "hsl(142 71% 45%)"; // verde
+    // gastos em tons de vermelho
+    const reds = ["hsl(0 84% 60%)", "hsl(0 72% 51%)", "hsl(14 91% 55%)", "hsl(350 80% 55%)", "hsl(25 85% 53%)"];
+    return reds[Math.abs(hashStr(name)) % reds.length];
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
