@@ -132,6 +132,23 @@ function Dashboard() {
     const lowStock = produtos.filter((p) => p.quantidade > 0 && p.quantidade <= 5);
     const outOfStock = produtos.filter((p) => p.quantidade === 0);
 
+    // Vendas (saídas de estoque) por produto neste mês
+    const vendidoPorProd: Record<string, number> = {};
+    for (const s of saidasMes) {
+      if (!s.produto_id) continue;
+      vendidoPorProd[s.produto_id] = (vendidoPorProd[s.produto_id] || 0) + Number(s.quantidade || 0);
+    }
+    // Produtos vendidos cujo estoque atual já não cobre o ritmo do mês → repor urgentemente
+    const reporUrgente = produtos
+      .filter((p) => p.id && (vendidoPorProd[p.id] || 0) > 0)
+      .map((p) => ({
+        nome: p.nome,
+        vendido: vendidoPorProd[p.id!] || 0,
+        estoque: p.quantidade || 0,
+      }))
+      .filter((x) => x.estoque <= x.vendido || x.estoque === 0)
+      .sort((a, b) => b.vendido - a.vendido);
+
     // Top despesa categoria
     const byCat: Record<string, number> = {};
     for (const x of despesas) byCat[x.categoria] = (byCat[x.categoria] || 0) + Number(x.valor || 0);
