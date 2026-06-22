@@ -267,6 +267,9 @@ function EmptyState({ tipo, onAdd }: { tipo: Tipo; onAdd: () => void }) {
   );
 }
 
+const TAX_RATE_KEY = "lr_tax_rate";
+const TAX_AUTO_KEY = "lr_tax_auto";
+
 function LancamentoForm({
   tipo,
   initial,
@@ -285,6 +288,27 @@ function LancamentoForm({
   const [observacao, setObservacao] = useState(initial?.observacao ?? "");
   const [saving, setSaving] = useState(false);
 
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 6;
+    const v = Number(localStorage.getItem(TAX_RATE_KEY));
+    return Number.isFinite(v) && v > 0 ? v : 6;
+  });
+  const [taxAuto, setTaxAuto] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(TAX_AUTO_KEY) !== "0";
+  });
+
+  const valorNum = Number((valor || "0").replace(",", ".")) || 0;
+  const taxValor = +(valorNum * (taxRate / 100)).toFixed(2);
+  const liquido = +(valorNum - taxValor).toFixed(2);
+
+  function persistTax(rate: number, auto: boolean) {
+    try {
+      localStorage.setItem(TAX_RATE_KEY, String(rate));
+      localStorage.setItem(TAX_AUTO_KEY, auto ? "1" : "0");
+    } catch {}
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const v = Number(valor.replace(",", "."));
@@ -293,19 +317,38 @@ function LancamentoForm({
 
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
+    const userId = u.user!.id;
     const payload = {
       valor: v,
       categoria: categoria.trim(),
       data,
       observacao: observacao.trim() || null,
-      user_id: u.user!.id,
+      user_id: userId,
     };
     const { error } = initial
       ? await supabase.from(table).update(payload).eq("id", initial.id)
       : await supabase.from(table).insert(payload);
+    if (error) {
+      setSaving(false);
+      return toast.error("Erro ao salvar");
+    }
+
+    if (tipo === "receita" && !initial && taxAuto && taxValor > 0) {
+      persistTax(taxRate, taxAuto);
+      const { error: errImp } = await supabase.from("despesas").insert({
+        valor: taxValor,
+        categoria: "Imposto",
+        data,
+        observacao: `Imposto ${taxRate}% sobre receita de ${BRL(v)}`,
+        user_id: userId,
+      });
+      if (errImp) toast.warning("Receita salva, mas não consegui lançar o imposto");
+      else toast.success(`Receita + imposto de ${BRL(taxValor)} lançados`);
+    } else {
+      if (tipo === "receita") persistTax(taxRate, taxAuto);
+      toast.success(initial ? "Atualizado" : "Adicionado");
+    }
     setSaving(false);
-    if (error) return toast.error("Erro ao salvar");
-    toast.success(initial ? "Atualizado" : "Adicionado");
     onSaved();
   }
 
