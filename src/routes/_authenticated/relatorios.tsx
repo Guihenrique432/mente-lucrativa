@@ -35,6 +35,12 @@ const monthLabel = (d: Date) =>
 
 type Row = { valor: number; data: string; categoria: string };
 
+const hashStr = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+};
+
 function RelatoriosPage() {
   const [receitas, setReceitas] = useState<Row[]>([]);
   const [despesas, setDespesas] = useState<Row[]>([]);
@@ -91,7 +97,16 @@ function RelatoriosPage() {
     return { mensal: months, totalFat, totalDesp, totalLucro, topCategorias };
   }, [receitas, despesas]);
 
-  const PIE_COLORS = ["hsl(var(--accent))", "hsl(var(--danger))", "hsl(var(--warning))", "hsl(var(--success))", "hsl(var(--muted-foreground))"];
+  const colorForCategoria = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("salár") || n.includes("salar") || n.includes("pró-labore") || n.includes("pro-labore") || n.includes("folha"))
+      return "hsl(217 91% 60%)"; // azul
+    if (n.includes("lucro") || n.includes("reserva") || n.includes("investimento"))
+      return "hsl(142 71% 45%)"; // verde
+    // gastos em tons de vermelho
+    const reds = ["hsl(0 84% 60%)", "hsl(0 72% 51%)", "hsl(14 91% 55%)", "hsl(350 80% 55%)", "hsl(25 85% 53%)"];
+    return reds[Math.abs(hashStr(name)) % reds.length];
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -203,7 +218,7 @@ function RelatoriosPage() {
                 <PieChart>
                   <Pie data={topCategorias} dataKey="value" nameKey="name" outerRadius={70} innerRadius={40}>
                     {topCategorias.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell key={i} fill={colorForCategoria(topCategorias[i].name)} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
