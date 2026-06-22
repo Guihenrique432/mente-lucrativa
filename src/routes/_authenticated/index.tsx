@@ -474,6 +474,7 @@ function computeStatsType() {
     estoqueValor: 0,
     lowStock: [] as Produto[],
     outOfStock: [] as Produto[],
+    reporUrgente: [] as { nome: string; vendido: number; estoque: number }[],
     topDesp: undefined as [string, number] | undefined,
     topDespPct: 0,
     ritmoDia: 0,
