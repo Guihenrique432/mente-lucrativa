@@ -171,12 +171,13 @@ function Dashboard() {
       estoqueValor,
       lowStock,
       outOfStock,
+      reporUrgente,
       topDesp,
       topDespPct,
       ritmoDia,
       faltaMeta,
     };
-  }, [receitas, despesas, receitasPrev, despesasPrev, produtos, meta]);
+  }, [receitas, despesas, receitasPrev, despesasPrev, produtos, saidasMes, meta]);
 
   const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
 
