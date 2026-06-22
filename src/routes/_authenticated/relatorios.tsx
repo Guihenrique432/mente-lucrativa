@@ -212,7 +212,7 @@ function RelatoriosPage() {
                 <PieChart>
                   <Pie data={topCategorias} dataKey="value" nameKey="name" outerRadius={70} innerRadius={40}>
                     {topCategorias.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell key={i} fill={colorForCategoria(topCategorias[i].name)} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
