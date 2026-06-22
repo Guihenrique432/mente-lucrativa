@@ -267,6 +267,9 @@ function EmptyState({ tipo, onAdd }: { tipo: Tipo; onAdd: () => void }) {
   );
 }
 
+const TAX_RATE_KEY = "lr_tax_rate";
+const TAX_AUTO_KEY = "lr_tax_auto";
+
 function LancamentoForm({
   tipo,
   initial,
@@ -285,6 +288,27 @@ function LancamentoForm({
   const [observacao, setObservacao] = useState(initial?.observacao ?? "");
   const [saving, setSaving] = useState(false);
 
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 6;
+    const v = Number(localStorage.getItem(TAX_RATE_KEY));
+    return Number.isFinite(v) && v > 0 ? v : 6;
+  });
+  const [taxAuto, setTaxAuto] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(TAX_AUTO_KEY) !== "0";
+  });
+
+  const valorNum = Number((valor || "0").replace(",", ".")) || 0;
+  const taxValor = +(valorNum * (taxRate / 100)).toFixed(2);
+  const liquido = +(valorNum - taxValor).toFixed(2);
+
+  function persistTax(rate: number, auto: boolean) {
+    try {
+      localStorage.setItem(TAX_RATE_KEY, String(rate));
+      localStorage.setItem(TAX_AUTO_KEY, auto ? "1" : "0");
+    } catch {}
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const v = Number(valor.replace(",", "."));
@@ -293,19 +317,38 @@ function LancamentoForm({
 
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
+    const userId = u.user!.id;
     const payload = {
       valor: v,
       categoria: categoria.trim(),
       data,
       observacao: observacao.trim() || null,
-      user_id: u.user!.id,
+      user_id: userId,
     };
     const { error } = initial
       ? await supabase.from(table).update(payload).eq("id", initial.id)
       : await supabase.from(table).insert(payload);
+    if (error) {
+      setSaving(false);
+      return toast.error("Erro ao salvar");
+    }
+
+    if (tipo === "receita" && !initial && taxAuto && taxValor > 0) {
+      persistTax(taxRate, taxAuto);
+      const { error: errImp } = await supabase.from("despesas").insert({
+        valor: taxValor,
+        categoria: "Imposto",
+        data,
+        observacao: `Imposto ${taxRate}% sobre receita de ${BRL(v)}`,
+        user_id: userId,
+      });
+      if (errImp) toast.warning("Receita salva, mas não consegui lançar o imposto");
+      else toast.success(`Receita + imposto de ${BRL(taxValor)} lançados`);
+    } else {
+      if (tipo === "receita") persistTax(taxRate, taxAuto);
+      toast.success(initial ? "Atualizado" : "Adicionado");
+    }
     setSaving(false);
-    if (error) return toast.error("Erro ao salvar");
-    toast.success(initial ? "Atualizado" : "Adicionado");
     onSaved();
   }
 
@@ -341,6 +384,56 @@ function LancamentoForm({
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base outline-none focus:border-accent"
             />
           </Field>
+
+          {tipo === "receita" && (
+            <div className="rounded-2xl border border-border bg-secondary/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Imposto estimado
+                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    inputMode="decimal"
+                    value={String(taxRate)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value.replace(",", "."));
+                      if (Number.isFinite(n) && n >= 0 && n <= 100) setTaxRate(n);
+                    }}
+                    className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-accent"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-card p-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Imposto
+                  </p>
+                  <p className="mt-0.5 font-bold text-danger">{BRL(taxValor)}</p>
+                </div>
+                <div className="rounded-lg bg-card p-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Líquido
+                  </p>
+                  <p className="mt-0.5 font-bold text-success">{BRL(liquido)}</p>
+                </div>
+              </div>
+              {!initial && (
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={taxAuto}
+                    onChange={(e) => setTaxAuto(e.target.checked)}
+                    className="h-4 w-4 accent-current"
+                  />
+                  Lançar imposto automaticamente como despesa
+                </label>
+              )}
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Sugestão Simples Nacional: 6% comércio · 6% serviços iniciais. Ajuste conforme seu regime.
+              </p>
+            </div>
+          )}
 
           <Field label="Categoria">
             <div className="mb-2 flex flex-wrap gap-1.5">
