@@ -385,6 +385,56 @@ function LancamentoForm({
             />
           </Field>
 
+          {tipo === "receita" && (
+            <div className="rounded-2xl border border-border bg-secondary/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Imposto estimado
+                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    inputMode="decimal"
+                    value={String(taxRate)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value.replace(",", "."));
+                      if (Number.isFinite(n) && n >= 0 && n <= 100) setTaxRate(n);
+                    }}
+                    className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-accent"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-card p-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Imposto
+                  </p>
+                  <p className="mt-0.5 font-bold text-danger">{BRL(taxValor)}</p>
+                </div>
+                <div className="rounded-lg bg-card p-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Líquido
+                  </p>
+                  <p className="mt-0.5 font-bold text-success">{BRL(liquido)}</p>
+                </div>
+              </div>
+              {!initial && (
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={taxAuto}
+                    onChange={(e) => setTaxAuto(e.target.checked)}
+                    className="h-4 w-4 accent-current"
+                  />
+                  Lançar imposto automaticamente como despesa
+                </label>
+              )}
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Sugestão Simples Nacional: 6% comércio · 6% serviços iniciais. Ajuste conforme seu regime.
+              </p>
+            </div>
+          )}
+
           <Field label="Categoria">
             <div className="mb-2 flex flex-wrap gap-1.5">
               {SUGESTOES[tipo].map((s) => (
