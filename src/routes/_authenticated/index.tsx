@@ -41,7 +41,8 @@ const BRL = (n: number) =>
 
 type Receita = { valor: number; data: string; categoria: string };
 type Despesa = { valor: number; data: string; categoria: string };
-type Produto = { nome: string; quantidade: number; custo: number; preco_venda: number };
+type Produto = { id?: string; nome: string; quantidade: number; custo: number; preco_venda: number };
+type MovSaida = { produto_id: string; quantidade: number };
 
 function monthRange(d = new Date()) {
   const start = new Date(d.getFullYear(), d.getMonth(), 1);
