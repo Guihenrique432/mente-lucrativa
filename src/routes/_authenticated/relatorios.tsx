@@ -35,6 +35,12 @@ const monthLabel = (d: Date) =>
 
 type Row = { valor: number; data: string; categoria: string };
 
+const hashStr = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+};
+
 function RelatoriosPage() {
   const [receitas, setReceitas] = useState<Row[]>([]);
   const [despesas, setDespesas] = useState<Row[]>([]);
