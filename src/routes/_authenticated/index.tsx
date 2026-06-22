@@ -41,7 +41,8 @@ const BRL = (n: number) =>
 
 type Receita = { valor: number; data: string; categoria: string };
 type Despesa = { valor: number; data: string; categoria: string };
-type Produto = { nome: string; quantidade: number; custo: number; preco_venda: number };
+type Produto = { id?: string; nome: string; quantidade: number; custo: number; preco_venda: number };
+type MovSaida = { produto_id: string; quantidade: number };
 
 function monthRange(d = new Date()) {
   const start = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -66,6 +67,7 @@ function Dashboard() {
   const [receitasPrev, setReceitasPrev] = useState<Receita[]>([]);
   const [despesasPrev, setDespesasPrev] = useState<Despesa[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
 
   useEffect(() => {
@@ -82,13 +84,14 @@ function Dashboard() {
     async function load() {
       const cur = monthRange();
       const prev = prevMonthRange();
-      const [r, d, rp, dp, p, m] = await Promise.all([
+      const [r, d, rp, dp, p, m, mov] = await Promise.all([
         supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
-        supabase.from("produtos").select("nome,quantidade,custo,preco_venda"),
+        supabase.from("produtos").select("id,nome,quantidade,custo,preco_venda"),
         supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("movimentacoes_estoque").select("produto_id,quantidade,tipo,data").eq("tipo", "saida").gte("data", cur.start).lte("data", cur.end + "T23:59:59"),
       ]);
       if (cancelled) return;
       setReceitas((r.data as Receita[]) ?? []);
@@ -96,6 +99,7 @@ function Dashboard() {
       setReceitasPrev((rp.data as Receita[]) ?? []);
       setDespesasPrev((dp.data as Despesa[]) ?? []);
       setProdutos((p.data as Produto[]) ?? []);
+      setSaidasMes(((mov.data as MovSaida[]) ?? []));
       setMeta(Number(m.data?.meta_lucro ?? 0));
       setLoading(false);
     }
@@ -128,6 +132,23 @@ function Dashboard() {
     const lowStock = produtos.filter((p) => p.quantidade > 0 && p.quantidade <= 5);
     const outOfStock = produtos.filter((p) => p.quantidade === 0);
 
+    // Vendas (saídas de estoque) por produto neste mês
+    const vendidoPorProd: Record<string, number> = {};
+    for (const s of saidasMes) {
+      if (!s.produto_id) continue;
+      vendidoPorProd[s.produto_id] = (vendidoPorProd[s.produto_id] || 0) + Number(s.quantidade || 0);
+    }
+    // Produtos vendidos cujo estoque atual já não cobre o ritmo do mês → repor urgentemente
+    const reporUrgente = produtos
+      .filter((p) => p.id && (vendidoPorProd[p.id] || 0) > 0)
+      .map((p) => ({
+        nome: p.nome,
+        vendido: vendidoPorProd[p.id!] || 0,
+        estoque: p.quantidade || 0,
+      }))
+      .filter((x) => x.estoque <= x.vendido || x.estoque === 0)
+      .sort((a, b) => b.vendido - a.vendido);
+
     // Top despesa categoria
     const byCat: Record<string, number> = {};
     for (const x of despesas) byCat[x.categoria] = (byCat[x.categoria] || 0) + Number(x.valor || 0);
@@ -150,12 +171,13 @@ function Dashboard() {
       estoqueValor,
       lowStock,
       outOfStock,
+      reporUrgente,
       topDesp,
       topDespPct,
       ritmoDia,
       faltaMeta,
     };
-  }, [receitas, despesas, receitasPrev, despesasPrev, produtos, meta]);
+  }, [receitas, despesas, receitasPrev, despesasPrev, produtos, saidasMes, meta]);
 
   const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
 
@@ -362,6 +384,20 @@ function buildRadar(s: ReturnType<typeof computeStatsType>, meta: number): Radar
     });
   }
 
+  if (s.reporUrgente.length > 0) {
+    const top = s.reporUrgente[0];
+    const more = s.reporUrgente.length - 1;
+    out.push({
+      tone: "danger",
+      icon: <AlertTriangle className="h-4 w-4" />,
+      title: `Repor URGENTE: ${top.nome}`,
+      description:
+        `Você vendeu ${top.vendido} un. este mês e tem apenas ${top.estoque} em estoque.` +
+        (more > 0 ? ` Mais ${more} produto(s) na mesma situação.` : ""),
+      cta: "Repor estoque",
+    });
+  }
+
   if (s.outOfStock.length > 0) {
     out.push({
       tone: "danger",
@@ -452,6 +488,7 @@ function computeStatsType() {
     estoqueValor: 0,
     lowStock: [] as Produto[],
     outOfStock: [] as Produto[],
+    reporUrgente: [] as { nome: string; vendido: number; estoque: number }[],
     topDesp: undefined as [string, number] | undefined,
     topDespPct: 0,
     ritmoDia: 0,
@@ -486,8 +523,13 @@ function buildAssistantInsights(s: ReturnType<typeof computeStatsType>, meta: nu
     );
   }
 
-  // Estoque / reajuste de produtos
-  if (s.outOfStock.length > 0) {
+  // Estoque vs vendas — sinal mais urgente, mostrar primeiro
+  if (s.reporUrgente.length > 0) {
+    const top = s.reporUrgente[0];
+    out.push(
+      <>Você vendeu <strong>{top.vendido}</strong> un. de <strong>{top.nome}</strong> este mês e só tem <strong>{top.estoque}</strong> em estoque. <strong>Reponha urgentemente</strong> para não perder vendas{s.reporUrgente.length > 1 ? ` (+${s.reporUrgente.length - 1} produto(s) na mesma situação)` : ""}.</>
+    );
+  } else if (s.outOfStock.length > 0) {
     out.push(
       <><strong>{s.outOfStock.length}</strong> produto(s) estão zerados — repor pode destravar novas vendas.</>
     );
