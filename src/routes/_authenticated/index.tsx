@@ -67,6 +67,7 @@ function Dashboard() {
   const [receitasPrev, setReceitasPrev] = useState<Receita[]>([]);
   const [despesasPrev, setDespesasPrev] = useState<Despesa[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
 
   useEffect(() => {
