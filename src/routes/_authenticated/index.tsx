@@ -313,8 +313,18 @@ function Dashboard() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-medium uppercase tracking-wider opacity-70">Assistente Lucro Real</p>
-              <p className="mt-1 text-sm leading-relaxed">{buildAssistantMessage(stats)}</p>
+              <p className="text-xs font-medium uppercase tracking-wider opacity-70">Sofia · sua assistente</p>
+              <p className="mt-1 text-sm leading-relaxed opacity-90">
+                Olá{nome ? `, ${nome}` : ""}! Analisei suas receitas, despesas, estoque e metas. Veja o que encontrei:
+              </p>
+              <ul className="mt-3 space-y-2">
+                {buildAssistantInsights(stats, meta).map((msg, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed">
+                    <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
+                    <span>{msg}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
@@ -449,30 +459,69 @@ function computeStatsType() {
   };
 }
 
-function buildAssistantMessage(s: ReturnType<typeof computeStatsType>): React.ReactNode {
+function buildAssistantInsights(s: ReturnType<typeof computeStatsType>, meta: number): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+
   if (s.faturamento === 0 && s.despesas === 0) {
-    return <>Comece registrando uma <strong>receita</strong> ou <strong>despesa</strong> para eu te ajudar com sugestões.</>;
+    return [
+      <>Comece registrando uma <strong>receita</strong> ou <strong>despesa</strong> para eu te ajudar com sugestões personalizadas.</>,
+    ];
   }
-  if (s.lucro < 0) {
-    return (
-      <>
-        Este mês você está <strong>{BRL(Math.abs(s.lucro))}</strong> no negativo. Reduzir{" "}
-        {s.topDesp ? <strong>{s.topDesp[0]}</strong> : "as maiores despesas"} pode reverter o cenário.
-      </>
+
+  // Variação de lucro vs mês anterior
+  if (s.variacaoLucro <= -5 && s.faturamento > 0) {
+    out.push(
+      <>Seu lucro caiu <strong>{Math.abs(s.variacaoLucro).toFixed(0)}%</strong> em relação ao mês anterior.</>
+    );
+  } else if (s.variacaoLucro >= 10) {
+    out.push(
+      <>Seu lucro cresceu <strong>{s.variacaoLucro.toFixed(0)}%</strong> em relação ao mês anterior. Continue assim!</>
     );
   }
-  if (s.topDesp && s.topDespPct > 20) {
-    return (
-      <>
-        Seu maior gasto este mês foi <strong>{s.topDesp[0]} ({s.topDespPct.toFixed(0)}%)</strong>. Revisar esse custo pode aumentar seu lucro de forma rápida.
-      </>
+
+  // Maior gasto
+  if (s.topDesp) {
+    out.push(
+      <>Seu maior gasto é <strong>{s.topDesp[0]}</strong> ({BRL(s.topDesp[1])}, {s.topDespPct.toFixed(0)}% do faturamento).</>
     );
   }
-  return (
-    <>
-      Seu lucro está em <strong>{BRL(s.lucro)}</strong> com margem de <strong>{s.margem.toFixed(0)}%</strong>. Continue acompanhando para manter o ritmo.
-    </>
-  );
+
+  // Estoque / reajuste de produtos
+  if (s.outOfStock.length > 0) {
+    out.push(
+      <><strong>{s.outOfStock.length}</strong> produto(s) estão zerados — repor pode destravar novas vendas.</>
+    );
+  } else if (s.lowStock.length > 0) {
+    out.push(
+      <>Você tem <strong>{s.lowStock.length}</strong> produto(s) com estoque baixo. Reajustar o preço ou repor pode aumentar seu lucro.</>
+    );
+  }
+
+  // Saúde do caixa
+  if (s.health === "saudavel") {
+    out.push(<>Seu caixa está <strong>saudável</strong> com margem de {s.margem.toFixed(0)}%.</>);
+  } else if (s.health === "risco") {
+    out.push(<>Seu caixa está <strong>apertado</strong> (margem de {s.margem.toFixed(0)}%). Vale revisar custos.</>);
+  }
+
+  // Meta
+  if (meta > 0) {
+    if (s.progressoMeta >= 100) {
+      out.push(<>Você bateu a meta do mês de <strong>{BRL(meta)}</strong> 🎉</>);
+    } else if (s.progressoMeta < 70) {
+      out.push(
+        <>Você está <strong>abaixo da meta</strong> ({s.progressoMeta}% de {BRL(meta)}). Faltam {BRL(s.faltaMeta)}.</>
+      );
+    } else {
+      out.push(<>Você está perto da meta ({s.progressoMeta}% de {BRL(meta)}). Quase lá!</>);
+    }
+  }
+
+  if (out.length === 0) {
+    out.push(<>Tudo certo por aqui. Continue registrando suas movimentações para insights mais precisos.</>);
+  }
+
+  return out.slice(0, 5);
 }
 
 function HealthCard({ status, margem }: { status: "saudavel" | "atencao" | "risco"; margem: number }) {
