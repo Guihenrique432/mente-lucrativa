@@ -384,6 +384,20 @@ function buildRadar(s: ReturnType<typeof computeStatsType>, meta: number): Radar
     });
   }
 
+  if (s.reporUrgente.length > 0) {
+    const top = s.reporUrgente[0];
+    const more = s.reporUrgente.length - 1;
+    out.push({
+      tone: "danger",
+      icon: <AlertTriangle className="h-4 w-4" />,
+      title: `Repor URGENTE: ${top.nome}`,
+      description:
+        `Você vendeu ${top.vendido} un. este mês e tem apenas ${top.estoque} em estoque.` +
+        (more > 0 ? ` Mais ${more} produto(s) na mesma situação.` : ""),
+      cta: "Repor estoque",
+    });
+  }
+
   if (s.outOfStock.length > 0) {
     out.push({
       tone: "danger",
