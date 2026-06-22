@@ -313,8 +313,18 @@ function Dashboard() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-medium uppercase tracking-wider opacity-70">Assistente Lucro Real</p>
-              <p className="mt-1 text-sm leading-relaxed">{buildAssistantMessage(stats)}</p>
+              <p className="text-xs font-medium uppercase tracking-wider opacity-70">Sofia · sua assistente</p>
+              <p className="mt-1 text-sm leading-relaxed opacity-90">
+                Olá{nome ? `, ${nome}` : ""}! Analisei suas receitas, despesas, estoque e metas. Veja o que encontrei:
+              </p>
+              <ul className="mt-3 space-y-2">
+                {buildAssistantInsights(stats, meta).map((msg, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed">
+                    <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-white/70" />
+                    <span>{msg}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
