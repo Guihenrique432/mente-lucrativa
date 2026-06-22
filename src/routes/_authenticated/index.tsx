@@ -523,8 +523,13 @@ function buildAssistantInsights(s: ReturnType<typeof computeStatsType>, meta: nu
     );
   }
 
-  // Estoque / reajuste de produtos
-  if (s.outOfStock.length > 0) {
+  // Estoque vs vendas — sinal mais urgente, mostrar primeiro
+  if (s.reporUrgente.length > 0) {
+    const top = s.reporUrgente[0];
+    out.push(
+      <>Você vendeu <strong>{top.vendido}</strong> un. de <strong>{top.nome}</strong> este mês e só tem <strong>{top.estoque}</strong> em estoque. <strong>Reponha urgentemente</strong> para não perder vendas{s.reporUrgente.length > 1 ? ` (+${s.reporUrgente.length - 1} produto(s) na mesma situação)` : ""}.</>
+    );
+  } else if (s.outOfStock.length > 0) {
     out.push(
       <><strong>{s.outOfStock.length}</strong> produto(s) estão zerados — repor pode destravar novas vendas.</>
     );
