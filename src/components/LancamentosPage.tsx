@@ -436,6 +436,48 @@ function LancamentoForm({
         </div>
 
         <div className="space-y-3">
+          {tipo === "receita" && !initial && produtos.length > 0 && (
+            <Field label="Produto vendido (opcional)">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={produtoId}
+                  onChange={(e) => setProdutoId(e.target.value)}
+                  className="w-full bg-transparent text-sm outline-none"
+                >
+                  <option value="">— Venda avulsa —</option>
+                  {produtos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} · {BRL(Number(p.preco_venda))} · estoque {p.quantidade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {produtoSel && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Qtd</span>
+                  <input
+                    inputMode="numeric"
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(e.target.value.replace(/[^\d]/g, ""))}
+                    className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-accent"
+                  />
+                  <span
+                    className={`text-[11px] font-semibold ${
+                      Number(quantidade) > produtoSel.quantidade
+                        ? "text-danger"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {Number(quantidade) > produtoSel.quantidade
+                      ? `Faltam ${Number(quantidade) - produtoSel.quantidade} no estoque`
+                      : `${produtoSel.quantidade - Number(quantidade || 0)} restantes após venda`}
+                  </span>
+                </div>
+              )}
+            </Field>
+          )}
+
           <Field label="Valor">
             <input
               autoFocus
@@ -446,6 +488,7 @@ function LancamentoForm({
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base outline-none focus:border-accent"
             />
           </Field>
+
 
           {tipo === "receita" && (
             <div className="rounded-2xl border border-border bg-secondary/40 p-3">
