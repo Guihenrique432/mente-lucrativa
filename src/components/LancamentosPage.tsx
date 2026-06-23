@@ -295,6 +295,34 @@ function LancamentoForm({
   const [observacao, setObservacao] = useState(initial?.observacao ?? "");
   const [saving, setSaving] = useState(false);
 
+  const [produtos, setProdutos] = useState<ProdutoOpt[]>([]);
+  const [produtoId, setProdutoId] = useState<string>("");
+  const [quantidade, setQuantidade] = useState<string>("1");
+  const produtoSel = useMemo(
+    () => produtos.find((p) => p.id === produtoId) || null,
+    [produtos, produtoId],
+  );
+
+  useEffect(() => {
+    if (tipo !== "receita" || initial) return;
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,nome,preco_venda,quantidade")
+        .order("nome");
+      setProdutos((data as ProdutoOpt[]) ?? []);
+    })();
+  }, [tipo, initial]);
+
+  // Quando seleciona produto/quantidade, calcula valor automaticamente
+  useEffect(() => {
+    if (!produtoSel) return;
+    const qtd = Math.max(1, Number(quantidade.replace(",", ".")) || 0);
+    const total = +(qtd * Number(produtoSel.preco_venda || 0)).toFixed(2);
+    setValor(String(total).replace(".", ","));
+    if (!categoria) setCategoria("Venda");
+  }, [produtoSel, quantidade]);
+
   const [taxRate, setTaxRate] = useState<number>(() => {
     if (typeof window === "undefined") return 6;
     const v = Number(localStorage.getItem(TAX_RATE_KEY));
