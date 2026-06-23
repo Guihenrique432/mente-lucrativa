@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+
+type ProdutoOpt = {
+  id: string;
+  nome: string;
+  preco_venda: number;
+  quantidade: number;
+};
 
 export type Tipo = "receita" | "despesa";
 
@@ -288,6 +295,34 @@ function LancamentoForm({
   const [observacao, setObservacao] = useState(initial?.observacao ?? "");
   const [saving, setSaving] = useState(false);
 
+  const [produtos, setProdutos] = useState<ProdutoOpt[]>([]);
+  const [produtoId, setProdutoId] = useState<string>("");
+  const [quantidade, setQuantidade] = useState<string>("1");
+  const produtoSel = useMemo(
+    () => produtos.find((p) => p.id === produtoId) || null,
+    [produtos, produtoId],
+  );
+
+  useEffect(() => {
+    if (tipo !== "receita" || initial) return;
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,nome,preco_venda,quantidade")
+        .order("nome");
+      setProdutos((data as ProdutoOpt[]) ?? []);
+    })();
+  }, [tipo, initial]);
+
+  // Quando seleciona produto/quantidade, calcula valor automaticamente
+  useEffect(() => {
+    if (!produtoSel) return;
+    const qtd = Math.max(1, Number(quantidade.replace(",", ".")) || 0);
+    const total = +(qtd * Number(produtoSel.preco_venda || 0)).toFixed(2);
+    setValor(String(total).replace(".", ","));
+    if (!categoria) setCategoria("Venda");
+  }, [produtoSel, quantidade]);
+
   const [taxRate, setTaxRate] = useState<number>(() => {
     if (typeof window === "undefined") return 6;
     const v = Number(localStorage.getItem(TAX_RATE_KEY));
@@ -315,14 +350,23 @@ function LancamentoForm({
     if (!v || v <= 0) return toast.error("Informe um valor válido");
     if (!categoria.trim()) return toast.error("Escolha uma categoria");
 
+    const qtdVenda = produtoSel
+      ? Math.max(1, Math.floor(Number(quantidade.replace(",", ".")) || 0))
+      : 0;
+    if (produtoSel && qtdVenda <= 0) return toast.error("Quantidade inválida");
+
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const userId = u.user!.id;
+    const obsFinal =
+      produtoSel && !observacao.trim()
+        ? `Venda: ${qtdVenda}× ${produtoSel.nome}`
+        : observacao.trim() || null;
     const payload = {
       valor: v,
       categoria: categoria.trim(),
       data,
-      observacao: observacao.trim() || null,
+      observacao: obsFinal,
       user_id: userId,
     };
     const { error } = initial
@@ -331,6 +375,24 @@ function LancamentoForm({
     if (error) {
       setSaving(false);
       return toast.error("Erro ao salvar");
+    }
+
+    // Baixa de estoque quando produto foi vinculado
+    if (tipo === "receita" && !initial && produtoSel && qtdVenda > 0) {
+      const { error: errMov } = await supabase.from("movimentacoes_estoque").insert({
+        user_id: userId,
+        produto_id: produtoSel.id,
+        tipo: "saida",
+        quantidade: qtdVenda,
+        observacao: `Venda registrada em receitas`,
+      });
+      if (errMov) {
+        toast.warning("Receita salva, mas não foi possível dar baixa no estoque");
+      } else if (qtdVenda > produtoSel.quantidade) {
+        toast.warning(
+          `Estoque insuficiente! Vendido ${qtdVenda}, havia ${produtoSel.quantidade}. Reponha urgente.`,
+        );
+      }
     }
 
     if (tipo === "receita" && !initial && taxAuto && taxValor > 0) {
@@ -374,6 +436,48 @@ function LancamentoForm({
         </div>
 
         <div className="space-y-3">
+          {tipo === "receita" && !initial && produtos.length > 0 && (
+            <Field label="Produto vendido (opcional)">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={produtoId}
+                  onChange={(e) => setProdutoId(e.target.value)}
+                  className="w-full bg-transparent text-sm outline-none"
+                >
+                  <option value="">— Venda avulsa —</option>
+                  {produtos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} · {BRL(Number(p.preco_venda))} · estoque {p.quantidade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {produtoSel && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Qtd</span>
+                  <input
+                    inputMode="numeric"
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(e.target.value.replace(/[^\d]/g, ""))}
+                    className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-accent"
+                  />
+                  <span
+                    className={`text-[11px] font-semibold ${
+                      Number(quantidade) > produtoSel.quantidade
+                        ? "text-danger"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {Number(quantidade) > produtoSel.quantidade
+                      ? `Faltam ${Number(quantidade) - produtoSel.quantidade} no estoque`
+                      : `${produtoSel.quantidade - Number(quantidade || 0)} restantes após venda`}
+                  </span>
+                </div>
+              )}
+            </Field>
+          )}
+
           <Field label="Valor">
             <input
               autoFocus
@@ -384,6 +488,7 @@ function LancamentoForm({
               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base outline-none focus:border-accent"
             />
           </Field>
+
 
           {tipo === "receita" && (
             <div className="rounded-2xl border border-border bg-secondary/40 p-3">
