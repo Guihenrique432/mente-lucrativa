@@ -642,7 +642,8 @@ function MovimentacoesSheet({
   }
 
   async function handleRemove(m: Movimentacao) {
-    if (!confirm("Excluir esta movimentação? O estoque será ajustado.")) return;
+    const label = m.tipo === "entrada" ? "entrada" : "saída";
+    if (!confirm(`Excluir ${label} de ${m.quantidade} un. do produto "${produto.nome}"?`)) return;
     const { error } = await supabase.from("movimentacoes_estoque").delete().eq("id", m.id);
     if (error) {
       toast.error("Erro ao excluir");
