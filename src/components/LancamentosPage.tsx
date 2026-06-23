@@ -207,7 +207,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
                         </button>
                         <button
                           aria-label="Excluir"
-                          onClick={() => handleDelete(i.id)}
+                          onClick={() => handleDelete(i)}
                           className="grid h-7 w-7 place-items-center rounded-lg bg-secondary text-muted-foreground transition hover:text-danger"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
