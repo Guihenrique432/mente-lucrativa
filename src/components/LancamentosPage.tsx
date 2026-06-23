@@ -97,9 +97,10 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
       .reduce((a, b) => a + Number(b.valor || 0), 0);
   }, [items]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Excluir este lançamento?")) return;
-    const { error } = await supabase.from(table).delete().eq("id", id);
+  async function handleDelete(i: Lancamento) {
+    const nome = i.observacao?.trim() || i.categoria;
+    if (!confirm(`Excluir "${nome}"?`)) return;
+    const { error } = await supabase.from(table).delete().eq("id", i.id);
     if (error) return toast.error("Erro ao excluir");
     toast.success("Excluído");
     load();
@@ -206,7 +207,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
                         </button>
                         <button
                           aria-label="Excluir"
-                          onClick={() => handleDelete(i.id)}
+                          onClick={() => handleDelete(i)}
                           className="grid h-7 w-7 place-items-center rounded-lg bg-secondary text-muted-foreground transition hover:text-danger"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
