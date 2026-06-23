@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+
+type ProdutoOpt = {
+  id: string;
+  nome: string;
+  preco_venda: number;
+  quantidade: number;
+};
 
 export type Tipo = "receita" | "despesa";
 
