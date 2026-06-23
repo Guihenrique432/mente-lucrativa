@@ -350,14 +350,23 @@ function LancamentoForm({
     if (!v || v <= 0) return toast.error("Informe um valor válido");
     if (!categoria.trim()) return toast.error("Escolha uma categoria");
 
+    const qtdVenda = produtoSel
+      ? Math.max(1, Math.floor(Number(quantidade.replace(",", ".")) || 0))
+      : 0;
+    if (produtoSel && qtdVenda <= 0) return toast.error("Quantidade inválida");
+
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const userId = u.user!.id;
+    const obsFinal =
+      produtoSel && !observacao.trim()
+        ? `Venda: ${qtdVenda}× ${produtoSel.nome}`
+        : observacao.trim() || null;
     const payload = {
       valor: v,
       categoria: categoria.trim(),
       data,
-      observacao: observacao.trim() || null,
+      observacao: obsFinal,
       user_id: userId,
     };
     const { error } = initial
@@ -366,6 +375,24 @@ function LancamentoForm({
     if (error) {
       setSaving(false);
       return toast.error("Erro ao salvar");
+    }
+
+    // Baixa de estoque quando produto foi vinculado
+    if (tipo === "receita" && !initial && produtoSel && qtdVenda > 0) {
+      const { error: errMov } = await supabase.from("movimentacoes_estoque").insert({
+        user_id: userId,
+        produto_id: produtoSel.id,
+        tipo: "saida",
+        quantidade: qtdVenda,
+        observacao: `Venda registrada em receitas`,
+      });
+      if (errMov) {
+        toast.warning("Receita salva, mas não foi possível dar baixa no estoque");
+      } else if (qtdVenda > produtoSel.quantidade) {
+        toast.warning(
+          `Estoque insuficiente! Vendido ${qtdVenda}, havia ${produtoSel.quantidade}. Reponha urgente.`,
+        );
+      }
     }
 
     if (tipo === "receita" && !initial && taxAuto && taxValor > 0) {
