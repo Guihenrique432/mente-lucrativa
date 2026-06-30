@@ -100,9 +100,29 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   async function handleDelete(i: Lancamento) {
     const nome = i.observacao?.trim() || i.categoria;
     if (!confirm(`Excluir "${nome}"?`)) return;
+
+    // Se for receita com venda vinculada, reverter o movimento de estoque
+    let estoqueRevertido = false;
+    if (tipo === "receita") {
+      const tag = `Venda receita:${i.id}`;
+      const { data: movs } = await supabase
+        .from("movimentacoes_estoque")
+        .select("id")
+        .eq("observacao", tag)
+        .eq("tipo", "saida");
+      if (movs && movs.length > 0) {
+        const ids = movs.map((m: { id: string }) => m.id);
+        const { error: errMov } = await supabase
+          .from("movimentacoes_estoque")
+          .delete()
+          .in("id", ids);
+        if (!errMov) estoqueRevertido = true;
+      }
+    }
+
     const { error } = await supabase.from(table).delete().eq("id", i.id);
     if (error) return toast.error("Erro ao excluir");
-    toast.success("Excluído");
+    toast.success(estoqueRevertido ? "Excluído e estoque restaurado" : "Excluído");
     load();
   }
 
@@ -370,13 +390,14 @@ function LancamentoForm({
       observacao: obsFinal,
       user_id: userId,
     };
-    const { error } = initial
-      ? await supabase.from(table).update(payload).eq("id", initial.id)
-      : await supabase.from(table).insert(payload);
+    const { data: saved, error } = initial
+      ? await supabase.from(table).update(payload).eq("id", initial.id).select("id").single()
+      : await supabase.from(table).insert(payload).select("id").single();
     if (error) {
       setSaving(false);
       return toast.error("Erro ao salvar");
     }
+    const savedId = (saved as { id: string } | null)?.id ?? initial?.id;
 
     // Baixa de estoque quando produto foi vinculado
     if (tipo === "receita" && !initial && produtoSel && qtdVenda > 0) {
@@ -385,7 +406,7 @@ function LancamentoForm({
         produto_id: produtoSel.id,
         tipo: "saida",
         quantidade: qtdVenda,
-        observacao: `Venda registrada em receitas`,
+        observacao: `Venda receita:${savedId}`,
       });
       if (errMov) {
         toast.warning("Receita salva, mas não foi possível dar baixa no estoque");
