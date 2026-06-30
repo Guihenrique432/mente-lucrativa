@@ -390,13 +390,14 @@ function LancamentoForm({
       observacao: obsFinal,
       user_id: userId,
     };
-    const { error } = initial
-      ? await supabase.from(table).update(payload).eq("id", initial.id)
-      : await supabase.from(table).insert(payload);
+    const { data: saved, error } = initial
+      ? await supabase.from(table).update(payload).eq("id", initial.id).select("id").single()
+      : await supabase.from(table).insert(payload).select("id").single();
     if (error) {
       setSaving(false);
       return toast.error("Erro ao salvar");
     }
+    const savedId = (saved as { id: string } | null)?.id ?? initial?.id;
 
     // Baixa de estoque quando produto foi vinculado
     if (tipo === "receita" && !initial && produtoSel && qtdVenda > 0) {
@@ -405,7 +406,7 @@ function LancamentoForm({
         produto_id: produtoSel.id,
         tipo: "saida",
         quantidade: qtdVenda,
-        observacao: `Venda registrada em receitas`,
+        observacao: `Venda receita:${savedId}`,
       });
       if (errMov) {
         toast.warning("Receita salva, mas não foi possível dar baixa no estoque");
