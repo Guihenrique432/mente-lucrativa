@@ -100,9 +100,29 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   async function handleDelete(i: Lancamento) {
     const nome = i.observacao?.trim() || i.categoria;
     if (!confirm(`Excluir "${nome}"?`)) return;
+
+    // Se for receita com venda vinculada, reverter o movimento de estoque
+    let estoqueRevertido = false;
+    if (tipo === "receita") {
+      const tag = `Venda receita:${i.id}`;
+      const { data: movs } = await supabase
+        .from("movimentacoes_estoque")
+        .select("id")
+        .eq("observacao", tag)
+        .eq("tipo", "saida");
+      if (movs && movs.length > 0) {
+        const ids = movs.map((m: { id: string }) => m.id);
+        const { error: errMov } = await supabase
+          .from("movimentacoes_estoque")
+          .delete()
+          .in("id", ids);
+        if (!errMov) estoqueRevertido = true;
+      }
+    }
+
     const { error } = await supabase.from(table).delete().eq("id", i.id);
     if (error) return toast.error("Erro ao excluir");
-    toast.success("Excluído");
+    toast.success(estoqueRevertido ? "Excluído e estoque restaurado" : "Excluído");
     load();
   }
 
