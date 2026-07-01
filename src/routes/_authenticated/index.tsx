@@ -20,6 +20,7 @@ import {
   Boxes,
   LogOut,
   CheckCircle2,
+  Crown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -269,6 +270,24 @@ function Dashboard() {
             />
           </Link>
         </div>
+      </section>
+
+      <section className="mt-4 px-5">
+        <Link
+          to="/planos"
+          className="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/5 p-4 transition hover:bg-accent/10"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
+              <Crown className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Desbloqueie o Profissional</p>
+              <p className="text-xs text-muted-foreground">Produtos ilimitados, IA e relatórios</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-accent">Ver planos →</span>
+        </Link>
       </section>
 
       {meta > 0 && (
