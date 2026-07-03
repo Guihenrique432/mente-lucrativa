@@ -196,22 +196,21 @@ function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              aria-label="Notificações"
+            <Link
+              to="/sofia"
+              aria-label="Falar com a Sofia"
               className="relative grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
             >
-              <Bell className="h-5 w-5" />
-              {radar.some((r) => r.tone === "danger" || r.tone === "warning") && (
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-warning" />
-              )}
-            </button>
-            <button
-              onClick={handleSignOut}
-              aria-label="Sair"
-              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
+              <Sparkles className="h-5 w-5" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+            </Link>
+            <Link
+              to="/perfil"
+              aria-label="Meu perfil"
+              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md text-sm font-bold transition hover:bg-white/15"
             >
-              <LogOut className="h-5 w-5" />
-            </button>
+              {(nome || "?").slice(0, 1).toUpperCase()}
+            </Link>
           </div>
         </div>
 
