@@ -107,10 +107,6 @@ function Dashboard() {
     };
   }, []);
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
 
   const stats = useMemo(() => {
     const sum = (xs: { valor: number }[]) => xs.reduce((a, b) => a + Number(b.valor || 0), 0);
