@@ -1,9 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import {
-  Bell,
   TrendingUp,
   TrendingDown,
   Target,
@@ -18,7 +17,6 @@ import {
   BarChart3,
   Plus,
   Boxes,
-  LogOut,
   CheckCircle2,
   Crown,
 } from "lucide-react";
@@ -60,7 +58,6 @@ function prevMonthRange(d = new Date()) {
 }
 
 function Dashboard() {
-  const navigate = useNavigate();
   const [nome, setNome] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [receitas, setReceitas] = useState<Receita[]>([]);
@@ -110,10 +107,6 @@ function Dashboard() {
     };
   }, []);
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
 
   const stats = useMemo(() => {
     const sum = (xs: { valor: number }[]) => xs.reduce((a, b) => a + Number(b.valor || 0), 0);
@@ -196,22 +189,21 @@ function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              aria-label="Notificações"
+            <Link
+              to="/sofia"
+              aria-label="Falar com a Sofia"
               className="relative grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
             >
-              <Bell className="h-5 w-5" />
-              {radar.some((r) => r.tone === "danger" || r.tone === "warning") && (
-                <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-warning" />
-              )}
-            </button>
-            <button
-              onClick={handleSignOut}
-              aria-label="Sair"
-              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md transition hover:bg-white/15"
+              <Sparkles className="h-5 w-5" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+            </Link>
+            <Link
+              to="/perfil"
+              aria-label="Meu perfil"
+              className="grid h-11 w-11 place-items-center rounded-full bg-white/10 backdrop-blur-md text-sm font-bold transition hover:bg-white/15"
             >
-              <LogOut className="h-5 w-5" />
-            </button>
+              {(nome || "?").slice(0, 1).toUpperCase()}
+            </Link>
           </div>
         </div>
 
@@ -274,16 +266,35 @@ function Dashboard() {
 
       <section className="mt-4 px-5">
         <Link
-          to="/planos"
-          className="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/5 p-4 transition hover:bg-accent/10"
+          to="/sofia"
+          className="flex items-center justify-between rounded-2xl border border-accent/40 p-4 transition hover:brightness-105"
+          style={{ background: "linear-gradient(135deg, hsl(var(--accent) / 0.12), hsl(var(--accent) / 0.04))" }}
         >
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Pergunte para a Sofia</p>
+              <p className="text-xs text-muted-foreground">IA que analisa seus números agora</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-accent">Abrir →</span>
+        </Link>
+      </section>
+
+      <section className="mt-3 px-5">
+        <Link
+          to="/planos"
+          className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white">
               <Crown className="h-5 w-5" />
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">Desbloqueie o Profissional</p>
-              <p className="text-xs text-muted-foreground">Produtos ilimitados, IA e relatórios</p>
+              <p className="text-xs text-muted-foreground">Produtos ilimitados e mais</p>
             </div>
           </div>
           <span className="text-xs font-semibold text-accent">Ver planos →</span>
