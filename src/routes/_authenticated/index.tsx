@@ -58,7 +58,6 @@ function prevMonthRange(d = new Date()) {
 }
 
 function Dashboard() {
-  const navigate = useNavigate();
   const [nome, setNome] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [receitas, setReceitas] = useState<Receita[]>([]);
