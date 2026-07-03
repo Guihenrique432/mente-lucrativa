@@ -76,15 +76,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0f172a" },
+      { title: "Lucro Real — Controle financeiro para autônomos e lojistas" },
+      {
+        name: "description",
+        content:
+          "Entenda seu lucro real, controle estoque e metas. App simples feito para quem empreende no Brasil.",
+      },
+      { property: "og:title", content: "Lucro Real — seu lucro sob controle" },
+      {
+        property: "og:description",
+        content: "Controle de faturamento, despesas, estoque e metas em um só app.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
