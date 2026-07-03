@@ -1,9 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import {
-  Bell,
   TrendingUp,
   TrendingDown,
   Target,
@@ -18,7 +17,6 @@ import {
   BarChart3,
   Plus,
   Boxes,
-  LogOut,
   CheckCircle2,
   Crown,
 } from "lucide-react";
