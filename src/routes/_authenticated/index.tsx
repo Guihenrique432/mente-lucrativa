@@ -266,16 +266,35 @@ function Dashboard() {
 
       <section className="mt-4 px-5">
         <Link
-          to="/planos"
-          className="flex items-center justify-between rounded-2xl border border-accent/30 bg-accent/5 p-4 transition hover:bg-accent/10"
+          to="/sofia"
+          className="flex items-center justify-between rounded-2xl border border-accent/40 p-4 transition hover:brightness-105"
+          style={{ background: "linear-gradient(135deg, hsl(var(--accent) / 0.12), hsl(var(--accent) / 0.04))" }}
         >
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Pergunte para a Sofia</p>
+              <p className="text-xs text-muted-foreground">IA que analisa seus números agora</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-accent">Abrir →</span>
+        </Link>
+      </section>
+
+      <section className="mt-3 px-5">
+        <Link
+          to="/planos"
+          className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white">
               <Crown className="h-5 w-5" />
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">Desbloqueie o Profissional</p>
-              <p className="text-xs text-muted-foreground">Produtos ilimitados, IA e relatórios</p>
+              <p className="text-xs text-muted-foreground">Produtos ilimitados e mais</p>
             </div>
           </div>
           <span className="text-xs font-semibold text-accent">Ver planos →</span>
