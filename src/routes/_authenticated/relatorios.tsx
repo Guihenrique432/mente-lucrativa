@@ -122,8 +122,16 @@ function RelatoriosPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <BarChart3 className="h-5 w-5 opacity-80" />
+          <button
+            onClick={() => exportCSV(receitas, despesas, mensal)}
+            className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold backdrop-blur-md transition hover:bg-white/15"
+            aria-label="Exportar CSV"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar CSV
+          </button>
         </div>
+
         <div className="mt-7">
           <p className="text-xs uppercase tracking-widest opacity-70">Últimos 6 meses</p>
           <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalLucro)}</p>
