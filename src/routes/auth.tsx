@@ -37,7 +37,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -46,9 +46,15 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Conta criada! Você já pode entrar.");
-        setMode("signin");
+        if (data.session) {
+          toast.success("Conta criada! Vamos começar 🎉");
+          navigate({ to: "/" });
+        } else {
+          toast.success("Conta criada! Você já pode entrar.");
+          setMode("signin");
+        }
       } else {
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
