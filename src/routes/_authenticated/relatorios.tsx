@@ -41,6 +41,39 @@ const hashStr = (s: string) => {
   return h;
 };
 
+function csvEscape(v: string | number) {
+  const s = String(v ?? "");
+  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadFile(name: string, content: string, type = "text/csv;charset=utf-8") {
+  const blob = new Blob(["\ufeff" + content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV(
+  receitas: Row[],
+  despesas: Row[],
+  mensal: { label: string; receita: number; despesa: number; lucro: number }[],
+) {
+  const rows: string[] = [];
+  rows.push("Tipo;Data;Categoria;Valor");
+  for (const r of receitas) rows.push(["Receita", r.data, r.categoria, r.valor].map(csvEscape).join(";"));
+  for (const d of despesas) rows.push(["Despesa", d.data, d.categoria, d.valor].map(csvEscape).join(";"));
+  rows.push("");
+  rows.push("Resumo mensal");
+  rows.push("Mês;Receita;Despesa;Lucro");
+  for (const m of mensal) rows.push([m.label, m.receita, m.despesa, m.lucro].map(csvEscape).join(";"));
+  const today = new Date().toISOString().slice(0, 10);
+  downloadFile(`lucro-real-${today}.csv`, rows.join("\n"));
+}
+
+
 function RelatoriosPage() {
   const [receitas, setReceitas] = useState<Row[]>([]);
   const [despesas, setDespesas] = useState<Row[]>([]);
