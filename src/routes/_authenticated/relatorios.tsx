@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, Download } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import {
   ResponsiveContainer,
