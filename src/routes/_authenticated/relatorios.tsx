@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Download } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import {
   ResponsiveContainer,
@@ -40,6 +40,39 @@ const hashStr = (s: string) => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return h;
 };
+
+function csvEscape(v: string | number) {
+  const s = String(v ?? "");
+  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function downloadFile(name: string, content: string, type = "text/csv;charset=utf-8") {
+  const blob = new Blob(["\ufeff" + content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV(
+  receitas: Row[],
+  despesas: Row[],
+  mensal: { label: string; receita: number; despesa: number; lucro: number }[],
+) {
+  const rows: string[] = [];
+  rows.push("Tipo;Data;Categoria;Valor");
+  for (const r of receitas) rows.push(["Receita", r.data, r.categoria, r.valor].map(csvEscape).join(";"));
+  for (const d of despesas) rows.push(["Despesa", d.data, d.categoria, d.valor].map(csvEscape).join(";"));
+  rows.push("");
+  rows.push("Resumo mensal");
+  rows.push("Mês;Receita;Despesa;Lucro");
+  for (const m of mensal) rows.push([m.label, m.receita, m.despesa, m.lucro].map(csvEscape).join(";"));
+  const today = new Date().toISOString().slice(0, 10);
+  downloadFile(`lucro-real-${today}.csv`, rows.join("\n"));
+}
+
 
 function RelatoriosPage() {
   const [receitas, setReceitas] = useState<Row[]>([]);
@@ -122,8 +155,16 @@ function RelatoriosPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <BarChart3 className="h-5 w-5 opacity-80" />
+          <button
+            onClick={() => exportCSV(receitas, despesas, mensal)}
+            className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold backdrop-blur-md transition hover:bg-white/15"
+            aria-label="Exportar CSV"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar CSV
+          </button>
         </div>
+
         <div className="mt-7">
           <p className="text-xs uppercase tracking-widest opacity-70">Últimos 6 meses</p>
           <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalLucro)}</p>
