@@ -237,6 +237,32 @@ function Dashboard() {
         <HealthCard status={stats.health} margem={stats.margem} />
       </section>
 
+      {(stats.outOfStock.length > 0 || stats.lowStock.length > 0) && (
+        <section className="mt-4 px-5">
+          <Link
+            to="/estoque"
+            className="flex items-center gap-3 rounded-2xl border border-danger/30 bg-danger/5 p-4 transition hover:bg-danger/10"
+          >
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-danger/15 text-danger">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-danger">
+                {stats.outOfStock.length > 0
+                  ? `${stats.outOfStock.length} produto${stats.outOfStock.length > 1 ? "s" : ""} zerado${stats.outOfStock.length > 1 ? "s" : ""}`
+                  : `Estoque baixo em ${stats.lowStock.length} produto${stats.lowStock.length > 1 ? "s" : ""}`}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {[...stats.outOfStock, ...stats.lowStock].slice(0, 3).map((p) => p.nome).join(", ")}
+                {stats.outOfStock.length + stats.lowStock.length > 3 && "..."}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-danger">Repor →</span>
+          </Link>
+        </section>
+      )}
+
+
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
           <Link to="/receitas">
