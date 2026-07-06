@@ -385,10 +385,12 @@ function Dashboard() {
       </section>
 
       <BottomNav active="home" />
+      <OnboardingModal />
 
     </div>
   );
 }
+
 
 type RadarTone = "danger" | "warning" | "success" | "neutral";
 type RadarSpec = { tone: RadarTone; icon: React.ReactNode; title: string; description: string; cta?: string };
