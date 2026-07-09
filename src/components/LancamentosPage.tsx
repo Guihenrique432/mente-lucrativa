@@ -180,10 +180,10 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
           </div>
         </div>
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-widest opacity-70">Total do mês</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalMes)}</p>
+          <p className="text-xs uppercase tracking-widest opacity-70">{PERIODO_LABELS[periodo]}</p>
+          <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalPeriodo)}</p>
           <p className="mt-1 text-xs opacity-70">
-            {items.length} lançamento{items.length === 1 ? "" : "s"} no total
+            {filtered.length} lançamento{filtered.length === 1 ? "" : "s"} · {items.length} no total
           </p>
         </div>
       </header>
@@ -203,11 +203,30 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
         </div>
       </section>
 
-      <section className="mt-5 space-y-5 px-5">
+      <section className="mt-3 px-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {PERIODO_OPTIONS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriodo(p)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                periodo === p
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {PERIODO_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      </section>
+
+
+      <section className="mt-4 space-y-5 px-5">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <SkeletonList n={5} />
         ) : grouped.length === 0 ? (
-          <EmptyState tipo={tipo} onAdd={() => setShowForm(true)} />
+          <EmptyState tipo={tipo} onAdd={() => setShowForm(true)} periodo={periodo} onClearPeriodo={() => setPeriodo("tudo")} />
         ) : (
           grouped.map(([data, arr]) => (
             <div key={data}>
@@ -235,6 +254,14 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
                         {tipo === "receita" ? "+" : "-"} {BRL(Number(i.valor))}
                       </p>
                       <div className="mt-1 flex justify-end gap-1">
+                        <button
+                          aria-label="Duplicar para hoje"
+                          title="Duplicar para hoje"
+                          onClick={() => handleDuplicate(i)}
+                          className="grid h-7 w-7 place-items-center rounded-lg bg-secondary text-muted-foreground transition hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           aria-label="Editar"
                           onClick={() => {
