@@ -322,22 +322,47 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   );
 }
 
-function EmptyState({ tipo, onAdd }: { tipo: Tipo; onAdd: () => void }) {
+function EmptyState({
+  tipo,
+  onAdd,
+  periodo,
+  onClearPeriodo,
+}: {
+  tipo: Tipo;
+  onAdd: () => void;
+  periodo: Periodo;
+  onClearPeriodo: () => void;
+}) {
+  const filtrado = periodo !== "tudo";
   return (
     <div className="rounded-3xl border-2 border-dashed border-border bg-card p-8 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
         <Receipt className="h-6 w-6" />
       </div>
-      <p className="mt-3 text-sm font-semibold">Nenhuma {tipo} registrada</p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Adicione sua primeira {tipo} para acompanhar.
+      <p className="mt-3 text-sm font-semibold">
+        {filtrado ? `Nenhuma ${tipo} em ${PERIODO_LABELS[periodo].toLowerCase()}` : `Nenhuma ${tipo} registrada`}
       </p>
-      <button
-        onClick={onAdd}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background"
-      >
-        <Plus className="h-3.5 w-3.5" /> Adicionar
-      </button>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {filtrado
+          ? "Ajuste o período ou registre um novo lançamento."
+          : `Adicione sua primeira ${tipo} para acompanhar.`}
+      </p>
+      <div className="mt-4 flex justify-center gap-2">
+        {filtrado && (
+          <button
+            onClick={onClearPeriodo}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground"
+          >
+            Ver tudo
+          </button>
+        )}
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background"
+        >
+          <Plus className="h-3.5 w-3.5" /> Adicionar
+        </button>
+      </div>
     </div>
   );
 }
