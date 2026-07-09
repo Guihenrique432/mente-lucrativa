@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package, Copy } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { SkeletonList } from "@/components/Skeleton";
+import { PERIODO_LABELS, PERIODO_OPTIONS, inPeriodo, type Periodo } from "@/lib/period";
 
 type ProdutoOpt = {
   id: string;
@@ -52,6 +54,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   const [editing, setEditing] = useState<Lancamento | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
 
   async function load() {
     setLoading(true);
@@ -71,13 +74,20 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (i) =>
+    return items.filter((i) => {
+      if (!inPeriodo(i.data, periodo)) return false;
+      if (!q) return true;
+      return (
         i.categoria.toLowerCase().includes(q) ||
-        (i.observacao ?? "").toLowerCase().includes(q),
-    );
-  }, [items, search]);
+        (i.observacao ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [items, search, periodo]);
+
+  const totalPeriodo = useMemo(
+    () => filtered.reduce((a, b) => a + Number(b.valor || 0), 0),
+    [filtered],
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<string, Lancamento[]>();
@@ -89,13 +99,23 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
     return Array.from(map.entries());
   }, [filtered]);
 
-  const totalMes = useMemo(() => {
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    return items
-      .filter((i) => i.data.startsWith(ym))
-      .reduce((a, b) => a + Number(b.valor || 0), 0);
-  }, [items]);
+  async function handleDuplicate(i: Lancamento) {
+    const { data: u } = await supabase.auth.getUser();
+    const userId = u.user?.id;
+    if (!userId) return toast.error("Sessão expirada");
+    const today = new Date();
+    const dataHoje = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const { error } = await supabase.from(table).insert({
+      valor: i.valor,
+      categoria: i.categoria,
+      observacao: i.observacao,
+      data: dataHoje,
+      user_id: userId,
+    });
+    if (error) return toast.error("Erro ao duplicar");
+    toast.success("Duplicado para hoje");
+    load();
+  }
 
   async function handleDelete(i: Lancamento) {
     const nome = i.observacao?.trim() || i.categoria;
