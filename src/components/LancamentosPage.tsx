@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, Search, Package, Copy } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { SkeletonList } from "@/components/Skeleton";
+import { PERIODO_LABELS, PERIODO_OPTIONS, inPeriodo, type Periodo } from "@/lib/period";
 
 type ProdutoOpt = {
   id: string;
@@ -52,6 +54,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   const [editing, setEditing] = useState<Lancamento | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
 
   async function load() {
     setLoading(true);
@@ -71,13 +74,20 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (i) =>
+    return items.filter((i) => {
+      if (!inPeriodo(i.data, periodo)) return false;
+      if (!q) return true;
+      return (
         i.categoria.toLowerCase().includes(q) ||
-        (i.observacao ?? "").toLowerCase().includes(q),
-    );
-  }, [items, search]);
+        (i.observacao ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [items, search, periodo]);
+
+  const totalPeriodo = useMemo(
+    () => filtered.reduce((a, b) => a + Number(b.valor || 0), 0),
+    [filtered],
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<string, Lancamento[]>();
@@ -89,13 +99,23 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
     return Array.from(map.entries());
   }, [filtered]);
 
-  const totalMes = useMemo(() => {
-    const now = new Date();
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    return items
-      .filter((i) => i.data.startsWith(ym))
-      .reduce((a, b) => a + Number(b.valor || 0), 0);
-  }, [items]);
+  async function handleDuplicate(i: Lancamento) {
+    const { data: u } = await supabase.auth.getUser();
+    const userId = u.user?.id;
+    if (!userId) return toast.error("Sessão expirada");
+    const today = new Date();
+    const dataHoje = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const { error } = await supabase.from(table).insert({
+      valor: i.valor,
+      categoria: i.categoria,
+      observacao: i.observacao,
+      data: dataHoje,
+      user_id: userId,
+    });
+    if (error) return toast.error("Erro ao duplicar");
+    toast.success("Duplicado para hoje");
+    load();
+  }
 
   async function handleDelete(i: Lancamento) {
     const nome = i.observacao?.trim() || i.categoria;
@@ -160,10 +180,10 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
           </div>
         </div>
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-widest opacity-70">Total do mês</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalMes)}</p>
+          <p className="text-xs uppercase tracking-widest opacity-70">{PERIODO_LABELS[periodo]}</p>
+          <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalPeriodo)}</p>
           <p className="mt-1 text-xs opacity-70">
-            {items.length} lançamento{items.length === 1 ? "" : "s"} no total
+            {filtered.length} lançamento{filtered.length === 1 ? "" : "s"} · {items.length} no total
           </p>
         </div>
       </header>
@@ -183,11 +203,30 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
         </div>
       </section>
 
-      <section className="mt-5 space-y-5 px-5">
+      <section className="mt-3 px-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {PERIODO_OPTIONS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriodo(p)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                periodo === p
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {PERIODO_LABELS[p]}
+            </button>
+          ))}
+        </div>
+      </section>
+
+
+      <section className="mt-4 space-y-5 px-5">
         {loading ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <SkeletonList n={5} />
         ) : grouped.length === 0 ? (
-          <EmptyState tipo={tipo} onAdd={() => setShowForm(true)} />
+          <EmptyState tipo={tipo} onAdd={() => setShowForm(true)} periodo={periodo} onClearPeriodo={() => setPeriodo("tudo")} />
         ) : (
           grouped.map(([data, arr]) => (
             <div key={data}>
@@ -215,6 +254,14 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
                         {tipo === "receita" ? "+" : "-"} {BRL(Number(i.valor))}
                       </p>
                       <div className="mt-1 flex justify-end gap-1">
+                        <button
+                          aria-label="Duplicar para hoje"
+                          title="Duplicar para hoje"
+                          onClick={() => handleDuplicate(i)}
+                          className="grid h-7 w-7 place-items-center rounded-lg bg-secondary text-muted-foreground transition hover:text-foreground"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           aria-label="Editar"
                           onClick={() => {
@@ -275,22 +322,47 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   );
 }
 
-function EmptyState({ tipo, onAdd }: { tipo: Tipo; onAdd: () => void }) {
+function EmptyState({
+  tipo,
+  onAdd,
+  periodo,
+  onClearPeriodo,
+}: {
+  tipo: Tipo;
+  onAdd: () => void;
+  periodo: Periodo;
+  onClearPeriodo: () => void;
+}) {
+  const filtrado = periodo !== "tudo";
   return (
     <div className="rounded-3xl border-2 border-dashed border-border bg-card p-8 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
         <Receipt className="h-6 w-6" />
       </div>
-      <p className="mt-3 text-sm font-semibold">Nenhuma {tipo} registrada</p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Adicione sua primeira {tipo} para acompanhar.
+      <p className="mt-3 text-sm font-semibold">
+        {filtrado ? `Nenhuma ${tipo} em ${PERIODO_LABELS[periodo].toLowerCase()}` : `Nenhuma ${tipo} registrada`}
       </p>
-      <button
-        onClick={onAdd}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background"
-      >
-        <Plus className="h-3.5 w-3.5" /> Adicionar
-      </button>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {filtrado
+          ? "Ajuste o período ou registre um novo lançamento."
+          : `Adicione sua primeira ${tipo} para acompanhar.`}
+      </p>
+      <div className="mt-4 flex justify-center gap-2">
+        {filtrado && (
+          <button
+            onClick={onClearPeriodo}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground"
+          >
+            Ver tudo
+          </button>
+        )}
+        <button
+          onClick={onAdd}
+          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background"
+        >
+          <Plus className="h-3.5 w-3.5" /> Adicionar
+        </button>
+      </div>
     </div>
   );
 }
