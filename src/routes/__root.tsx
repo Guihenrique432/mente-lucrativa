@@ -84,10 +84,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Entenda seu lucro real, controle estoque e metas. App simples feito para quem empreende no Brasil.",
       },
-      { property: "og:title", content: "Lucro Real — seu lucro sob controle" },
+      { property: "og:title", content: "Lucro Real — Controle financeiro para autônomos e lojistas" },
       {
         property: "og:description",
-        content: "Controle de faturamento, despesas, estoque e metas em um só app.",
+        content: "Entenda seu lucro real, controle estoque e metas. App simples feito para quem empreende no Brasil.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -95,14 +95,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Lucro Real" },
       { name: "mobile-web-app-capable", content: "yes" },
+      { name: "twitter:title", content: "Lucro Real — Controle financeiro para autônomos e lojistas" },
+      { name: "twitter:description", content: "Entenda seu lucro real, controle estoque e metas. App simples feito para quem empreende no Brasil." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/58c486f6-2fd3-42a0-916e-f73f73a5ce38/id-preview-5b00c746--86d7d361-e355-4945-ab23-49fb62a04293.lovable.app-1783692059500.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/58c486f6-2fd3-42a0-916e-f73f73a5ce38/id-preview-5b00c746--86d7d361-e355-4945-ab23-49fb62a04293.lovable.app-1783692059500.png" },
     ],
 
 
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
-      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
 
