@@ -80,7 +80,7 @@ ${margens.length ? `- 3 menores margens: ${margens.slice(0, 3).map((x) => `${x.n
 
 export const askSofia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { messages: Message[] }) => input)
+  .inputValidator((input: unknown) => AskSofiaInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("IA indisponível no momento.");
