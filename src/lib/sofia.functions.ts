@@ -1,7 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Message = { role: "user" | "assistant"; content: string };
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(2000),
+});
+const AskSofiaInputSchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(30),
+});
+type Message = z.infer<typeof MessageSchema>;
 
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
