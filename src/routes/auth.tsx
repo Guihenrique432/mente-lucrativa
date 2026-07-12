@@ -57,8 +57,13 @@ function AuthPage() {
 
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Bem-vindo de volta!");
-        navigate({ to: "/" });
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
+          navigate({ to: "/auth/2fa" });
+        } else {
+          toast.success("Bem-vindo de volta!");
+          navigate({ to: "/" });
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Algo deu errado";

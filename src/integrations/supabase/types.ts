@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_lancamentos: {
+        Row: {
+          acao: string
+          campos_alterados: string[]
+          created_at: string
+          dados_antes: Json | null
+          dados_depois: Json | null
+          id: string
+          registro_id: string
+          tabela: string
+          user_id: string
+        }
+        Insert: {
+          acao: string
+          campos_alterados?: string[]
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          registro_id: string
+          tabela: string
+          user_id: string
+        }
+        Update: {
+          acao?: string
+          campos_alterados?: string[]
+          created_at?: string
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          registro_id?: string
+          tabela?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           created_at: string
