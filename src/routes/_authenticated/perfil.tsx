@@ -288,7 +288,163 @@ function PerfilPage() {
         </button>
       </main>
 
+      {showEnroll && (
+        <EnrollMfaModal
+          onClose={() => setShowEnroll(false)}
+          onSuccess={() => {
+            setShowEnroll(false);
+            refreshMfa();
+          }}
+        />
+      )}
+
       <BottomNav active="home" />
+    </div>
+  );
+}
+
+function EnrollMfaModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [step, setStep] = useState<"loading" | "scan" | "verifying">("loading");
+  const [factorId, setFactorId] = useState("");
+  const [qr, setQr] = useState("");
+  const [secret, setSecret] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: existing } = await supabase.auth.mfa.listFactors();
+      const unverified = existing?.totp?.filter((f) => f.status !== "verified") ?? [];
+      for (const f of unverified) {
+        await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+      const { data, error: enrollErr } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: `Lucro Real ${new Date().toISOString().slice(0, 10)}`,
+      });
+      if (enrollErr || !data) {
+        setError(enrollErr?.message ?? "Não foi possível iniciar.");
+        return;
+      }
+      setFactorId(data.id);
+      setQr(data.totp.qr_code);
+      setSecret(data.totp.secret);
+      setStep("scan");
+    })();
+  }, []);
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setStep("verifying");
+    setError("");
+    try {
+      const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId });
+      if (chErr) throw chErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: ch.id,
+        code: code.trim(),
+      });
+      if (vErr) throw vErr;
+      toast.success("2FA ativado com sucesso!");
+      onSuccess();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Código inválido";
+      setError(msg.includes("Invalid") ? "Código incorreto. Tente de novo." : msg);
+      setStep("scan");
+    }
+  }
+
+  async function handleCancel() {
+    if (factorId) {
+      await supabase.auth.mfa.unenroll({ factorId });
+    }
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center"
+      onClick={handleCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-border bg-card p-5 sm:rounded-3xl"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent">Segurança</p>
+            <h2 className="mt-1 text-lg font-bold text-foreground">Ativar 2FA</h2>
+          </div>
+          <button
+            onClick={handleCancel}
+            className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {step === "loading" && (
+          <div className="grid place-items-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {step !== "loading" && (
+          <div className="mt-4 space-y-4">
+            <ol className="space-y-1 text-xs text-muted-foreground">
+              <li>1. Abra um app autenticador (Google Authenticator, Authy, 1Password).</li>
+              <li>2. Escaneie o QR code abaixo ou digite o código manual.</li>
+              <li>3. Digite os 6 dígitos que o app mostrar.</li>
+            </ol>
+
+            {qr && (
+              <div className="flex justify-center rounded-2xl bg-white p-4">
+                <img src={qr} alt="QR code para ativar 2FA" className="h-48 w-48" />
+              </div>
+            )}
+
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Código manual
+              </p>
+              <p className="mt-1 select-all break-all rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs">
+                {secret}
+              </p>
+            </div>
+
+            <form onSubmit={handleVerify}>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Código do app
+                </span>
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoFocus
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="000000"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-center text-xl font-bold tracking-[0.4em] outline-none focus:border-accent"
+                />
+              </label>
+
+              {error && <p className="mt-2 text-xs font-medium text-danger">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={code.length !== 6 || step === "verifying"}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-primary-foreground transition disabled:opacity-40"
+                style={{ background: "var(--gradient-hero)" }}
+              >
+                {step === "verifying" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar e ativar"}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
