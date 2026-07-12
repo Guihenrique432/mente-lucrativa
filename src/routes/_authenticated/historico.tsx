@@ -151,7 +151,7 @@ function HistoricoPage() {
         </section>
 
         {loading ? (
-          <SkeletonList count={5} />
+          <SkeletonList n={5} />
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
             <p className="text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>

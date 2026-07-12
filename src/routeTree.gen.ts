@@ -14,12 +14,14 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as Auth2faRouteImport } from './routes/auth.2fa'
 import { Route as AuthenticatedSofiaRouteImport } from './routes/_authenticated/sofia'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedReceitasRouteImport } from './routes/_authenticated/receitas'
 import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
+import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 
@@ -46,6 +48,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const Auth2faRoute = Auth2faRouteImport.update({
+  id: '/2fa',
+  path: '/2fa',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedSofiaRoute = AuthenticatedSofiaRouteImport.update({
   id: '/sofia',
@@ -77,6 +84,11 @@ const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
   path: '/metas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
   id: '/estoque',
   path: '/estoque',
@@ -90,46 +102,52 @@ const AuthenticatedDespesasRoute = AuthenticatedDespesasRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
+  '/auth/2fa': typeof Auth2faRoute
 }
 export interface FileRoutesByTo {
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/planos': typeof AuthenticatedPlanosRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
+  '/auth/2fa': typeof Auth2faRoute
   '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/despesas': typeof AuthenticatedDespesasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
+  '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/receitas': typeof AuthenticatedReceitasRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/sofia': typeof AuthenticatedSofiaRoute
+  '/auth/2fa': typeof Auth2faRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
@@ -141,12 +159,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/despesas'
     | '/estoque'
+    | '/historico'
     | '/metas'
     | '/perfil'
     | '/planos'
     | '/receitas'
     | '/relatorios'
     | '/sofia'
+    | '/auth/2fa'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -154,12 +174,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/despesas'
     | '/estoque'
+    | '/historico'
     | '/metas'
     | '/perfil'
     | '/planos'
     | '/receitas'
     | '/relatorios'
     | '/sofia'
+    | '/auth/2fa'
     | '/'
   id:
     | '__root__'
@@ -169,18 +191,20 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/despesas'
     | '/_authenticated/estoque'
+    | '/_authenticated/historico'
     | '/_authenticated/metas'
     | '/_authenticated/perfil'
     | '/_authenticated/planos'
     | '/_authenticated/receitas'
     | '/_authenticated/relatorios'
     | '/_authenticated/sofia'
+    | '/auth/2fa'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
@@ -221,6 +245,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth/2fa': {
+      id: '/auth/2fa'
+      path: '/2fa'
+      fullPath: '/auth/2fa'
+      preLoaderRoute: typeof Auth2faRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/sofia': {
       id: '/_authenticated/sofia'
@@ -264,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMetasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/historico': {
+      id: '/_authenticated/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AuthenticatedHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/estoque': {
       id: '/_authenticated/estoque'
       path: '/estoque'
@@ -284,6 +322,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
+  AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
@@ -296,6 +335,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDespesasRoute: AuthenticatedDespesasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
+  AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
@@ -308,9 +348,19 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  Auth2faRoute: typeof Auth2faRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  Auth2faRoute: Auth2faRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
