@@ -30,6 +30,15 @@ function PerfilPage() {
   const [initialNome, setInitialNome] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaLoading, setMfaLoading] = useState(true);
+  const [showEnroll, setShowEnroll] = useState(false);
+
+  async function refreshMfa() {
+    const { data } = await supabase.auth.mfa.listFactors();
+    setMfaEnabled(!!data?.totp?.some((f) => f.status === "verified"));
+    setMfaLoading(false);
+  }
 
   useEffect(() => {
     async function load() {
@@ -45,9 +54,25 @@ function PerfilPage() {
       setInitialNome(prof?.nome ?? "");
       setPlano(prof?.plano ?? "gratuito");
       setLoading(false);
+      refreshMfa();
     }
     load();
   }, []);
+
+  async function handleDisableMfa() {
+    if (!confirm("Desativar a verificação em duas etapas?")) return;
+    const { data } = await supabase.auth.mfa.listFactors();
+    const verified = data?.totp?.find((f) => f.status === "verified");
+    if (!verified) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: verified.id });
+    if (error) {
+      toast.error("Não foi possível desativar.");
+      return;
+    }
+    toast.success("2FA desativado.");
+    refreshMfa();
+  }
+
 
   async function handleSave() {
     if (nome.trim().length < 2) {
