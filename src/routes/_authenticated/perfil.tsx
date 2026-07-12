@@ -215,6 +215,70 @@ function PerfilPage() {
           <span className="text-xs font-semibold text-accent">→</span>
         </Link>
 
+        <Link
+          to="/historico"
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-accent/60"
+        >
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+            <History className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">Histórico de alterações</p>
+            <p className="text-xs text-muted-foreground">Tudo que criou, editou ou excluiu</p>
+          </div>
+          <span className="text-xs font-semibold text-accent">→</span>
+        </Link>
+
+        <section
+          className="rounded-2xl border border-border bg-card p-5"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Verificação em 2 etapas</p>
+                <p className="text-xs text-muted-foreground">
+                  {mfaLoading ? "Carregando..." : mfaEnabled ? "Ativa" : "Desativada"}
+                </p>
+              </div>
+            </div>
+            {!mfaLoading && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                  mfaEnabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {mfaEnabled ? "ON" : "OFF"}
+              </span>
+            )}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Proteja sua conta com um código de 6 dígitos gerado pelo seu app autenticador (Google Authenticator, Authy, 1Password).
+          </p>
+          {!mfaLoading && (
+            mfaEnabled ? (
+              <button
+                onClick={handleDisableMfa}
+                className="mt-4 w-full rounded-xl border border-danger/30 bg-danger/5 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger/10"
+              >
+                Desativar 2FA
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowEnroll(true)}
+                className="mt-4 w-full rounded-xl py-2.5 text-sm font-semibold text-primary-foreground transition"
+                style={{ background: "var(--gradient-hero)" }}
+              >
+                Ativar 2FA
+              </button>
+            )
+          )}
+        </section>
+
+
         <button
           onClick={handleSignOut}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-danger/30 bg-danger/5 py-3 text-sm font-semibold text-danger transition hover:bg-danger/10"
