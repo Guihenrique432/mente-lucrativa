@@ -4,6 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { toast } from "sonner";
+import {
+  carregarAssinatura,
+  cancelarAssinatura,
+  reativarAssinatura,
+  diasRestantes,
+  formatarData,
+  STATUS_INFO,
+  type Assinatura,
+} from "@/lib/assinatura";
+
 
 
 export const Route = createFileRoute("/_authenticated/perfil")({
@@ -33,6 +43,9 @@ function PerfilPage() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
+  const [userId, setUserId] = useState("");
+  const [assinatura, setAssinatura] = useState<Assinatura | null>(null);
+  const [assinaturaBusy, setAssinaturaBusy] = useState(false);
 
   async function refreshMfa() {
     const { data } = await supabase.auth.mfa.listFactors();
@@ -44,20 +57,55 @@ function PerfilPage() {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+      setUserId(userData.user.id);
       setEmail(userData.user.email ?? "");
       const { data: prof } = await supabase
         .from("profiles")
-        .select("nome,plano")
+        .select("nome")
         .eq("id", userData.user.id)
         .maybeSingle();
       setNome(prof?.nome ?? "");
       setInitialNome(prof?.nome ?? "");
-      setPlano(prof?.plano ?? "gratuito");
+      const assin = await carregarAssinatura(userData.user.id);
+      setAssinatura(assin);
+      setPlano(assin?.plano ?? "gratuito");
       setLoading(false);
       refreshMfa();
     }
     load();
   }, []);
+
+  async function handleCancelar() {
+    if (!confirm("Cancelar a renovação automática da sua assinatura?")) return;
+    setAssinaturaBusy(true);
+    try {
+      const atualizada = await cancelarAssinatura(userId);
+      if (atualizada) {
+        setAssinatura(atualizada);
+        setPlano(atualizada.plano);
+      }
+      toast.success("Assinatura cancelada. Você mantém os benefícios até o fim do período.");
+    } catch {
+      toast.error("Não foi possível cancelar agora.");
+    }
+    setAssinaturaBusy(false);
+  }
+
+  async function handleReativar() {
+    setAssinaturaBusy(true);
+    try {
+      const atualizada = await reativarAssinatura(userId);
+      if (atualizada) {
+        setAssinatura(atualizada);
+        setPlano(atualizada.plano);
+      }
+      toast.success("Renovação automática reativada!");
+    } catch {
+      toast.error("Não foi possível reativar agora.");
+    }
+    setAssinaturaBusy(false);
+  }
+
 
   async function handleDisableMfa() {
     if (!confirm("Desativar a verificação em duas etapas?")) return;
@@ -190,13 +238,59 @@ function PerfilPage() {
               <Crown className="h-5 w-5" />
             </span>
           </div>
+
+          {assinatura && (
+            <>
+              <div className="mt-3 flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_INFO[assinatura.status].classe}`}
+                >
+                  {STATUS_INFO[assinatura.status].rotulo}
+                </span>
+                {assinatura.expiraEm && assinatura.status !== "vencido" && (
+                  <span className="text-xs text-muted-foreground">
+                    {assinatura.status === "cancelado" ? "Válida até" : "Renova em"}{" "}
+                    {formatarData(assinatura.expiraEm)}
+                    {diasRestantes(assinatura.expiraEm) !== null &&
+                      ` (${diasRestantes(assinatura.expiraEm)} dias)`}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {STATUS_INFO[assinatura.status].descricao}
+              </p>
+
+              {assinatura.plano !== "gratuito" && assinatura.status === "ativo" && (
+                <button
+                  onClick={handleCancelar}
+                  disabled={assinaturaBusy}
+                  className="mt-4 w-full rounded-xl border border-danger/30 bg-danger/5 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger/10 disabled:opacity-40"
+                >
+                  Cancelar assinatura
+                </button>
+              )}
+
+              {assinatura.plano !== "gratuito" && assinatura.status === "cancelado" && (
+                <button
+                  onClick={handleReativar}
+                  disabled={assinaturaBusy}
+                  className="mt-4 w-full rounded-xl py-2.5 text-sm font-semibold text-primary-foreground transition disabled:opacity-40"
+                  style={{ background: "var(--gradient-hero)" }}
+                >
+                  Reativar renovação automática
+                </button>
+              )}
+            </>
+          )}
+
           <Link
             to="/planos"
-            className="mt-4 flex items-center justify-center rounded-xl border border-accent/40 bg-accent/5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/10"
+            className="mt-3 flex items-center justify-center rounded-xl border border-accent/40 bg-accent/5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/10"
           >
-            {plano === "gratuito" ? "Fazer upgrade" : "Gerenciar plano"}
+            {plano === "gratuito" ? "Fazer upgrade" : "Ver planos"}
           </Link>
         </section>
+
 
         <Link
           to="/sofia"

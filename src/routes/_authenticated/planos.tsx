@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Sparkles, Crown, Zap } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { ativarPlano, carregarAssinatura } from "@/lib/assinatura";
+
 
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
@@ -74,17 +77,39 @@ const plans = [
 ];
 
 function PlanosPage() {
-  const [current] = useState<PlanId>("gratuito");
+  const [current, setCurrent] = useState<PlanId>("gratuito");
+  const [userId, setUserId] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleSelect(plan: (typeof plans)[number]) {
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      setUserId(data.user.id);
+      const assin = await carregarAssinatura(data.user.id);
+      if (assin) setCurrent(assin.plano);
+    })();
+  }, []);
+
+  async function handleSelect(plan: (typeof plans)[number]) {
     if (plan.id === "gratuito") {
       toast.info("Você já está no plano Gratuito.");
       return;
     }
-    toast.success(`Checkout em teste — ${plan.name}`, {
-      description: "Em breve o pagamento real será habilitado.",
-    });
+    if (!userId || busy) return;
+    setBusy(true);
+    try {
+      const assin = await ativarPlano(userId, plan.id as "profissional" | "premium");
+      if (assin) setCurrent(assin.plano);
+      toast.success(`Assinatura ${plan.name} ativada (teste)`, {
+        description: "Renovação automática ativa. Você pode cancelar no seu perfil.",
+      });
+    } catch {
+      toast.error("Não foi possível ativar o plano agora.");
+    }
+    setBusy(false);
   }
+
 
   return (
     <div className="min-h-screen bg-background pb-28">
