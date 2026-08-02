@@ -190,13 +190,59 @@ function PerfilPage() {
               <Crown className="h-5 w-5" />
             </span>
           </div>
+
+          {assinatura && (
+            <>
+              <div className="mt-3 flex items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_INFO[assinatura.status].classe}`}
+                >
+                  {STATUS_INFO[assinatura.status].rotulo}
+                </span>
+                {assinatura.expiraEm && assinatura.status !== "vencido" && (
+                  <span className="text-xs text-muted-foreground">
+                    {assinatura.status === "cancelado" ? "Válida até" : "Renova em"}{" "}
+                    {formatarData(assinatura.expiraEm)}
+                    {diasRestantes(assinatura.expiraEm) !== null &&
+                      ` (${diasRestantes(assinatura.expiraEm)} dias)`}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {STATUS_INFO[assinatura.status].descricao}
+              </p>
+
+              {assinatura.plano !== "gratuito" && assinatura.status === "ativo" && (
+                <button
+                  onClick={handleCancelar}
+                  disabled={assinaturaBusy}
+                  className="mt-4 w-full rounded-xl border border-danger/30 bg-danger/5 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger/10 disabled:opacity-40"
+                >
+                  Cancelar assinatura
+                </button>
+              )}
+
+              {assinatura.plano !== "gratuito" && assinatura.status === "cancelado" && (
+                <button
+                  onClick={handleReativar}
+                  disabled={assinaturaBusy}
+                  className="mt-4 w-full rounded-xl py-2.5 text-sm font-semibold text-primary-foreground transition disabled:opacity-40"
+                  style={{ background: "var(--gradient-hero)" }}
+                >
+                  Reativar renovação automática
+                </button>
+              )}
+            </>
+          )}
+
           <Link
             to="/planos"
-            className="mt-4 flex items-center justify-center rounded-xl border border-accent/40 bg-accent/5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/10"
+            className="mt-3 flex items-center justify-center rounded-xl border border-accent/40 bg-accent/5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/10"
           >
-            {plano === "gratuito" ? "Fazer upgrade" : "Gerenciar plano"}
+            {plano === "gratuito" ? "Fazer upgrade" : "Ver planos"}
           </Link>
         </section>
+
 
         <Link
           to="/sofia"
