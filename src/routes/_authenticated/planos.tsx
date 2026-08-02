@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Sparkles, Crown, Zap } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { ativarPlano, carregarAssinatura } from "@/lib/assinatura";
+
 
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
