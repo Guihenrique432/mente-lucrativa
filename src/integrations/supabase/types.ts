@@ -188,6 +188,10 @@ export type Database = {
           id: string
           nome: string | null
           plano: string
+          plano_cancelado_em: string | null
+          plano_expira_em: string | null
+          plano_renova_automaticamente: boolean
+          plano_status: string
           updated_at: string
         }
         Insert: {
@@ -196,6 +200,10 @@ export type Database = {
           id: string
           nome?: string | null
           plano?: string
+          plano_cancelado_em?: string | null
+          plano_expira_em?: string | null
+          plano_renova_automaticamente?: boolean
+          plano_status?: string
           updated_at?: string
         }
         Update: {
@@ -204,6 +212,10 @@ export type Database = {
           id?: string
           nome?: string | null
           plano?: string
+          plano_cancelado_em?: string | null
+          plano_expira_em?: string | null
+          plano_renova_automaticamente?: boolean
+          plano_status?: string
           updated_at?: string
         }
         Relationships: []
@@ -246,7 +258,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      expirar_assinaturas: { Args: never; Returns: undefined }
     }
     Enums: {
       tipo_movimentacao: "entrada" | "saida"
