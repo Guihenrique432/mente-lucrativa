@@ -43,6 +43,9 @@ function PerfilPage() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaLoading, setMfaLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
+  const [userId, setUserId] = useState("");
+  const [assinatura, setAssinatura] = useState<Assinatura | null>(null);
+  const [assinaturaBusy, setAssinaturaBusy] = useState(false);
 
   async function refreshMfa() {
     const { data } = await supabase.auth.mfa.listFactors();
@@ -54,20 +57,55 @@ function PerfilPage() {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
+      setUserId(userData.user.id);
       setEmail(userData.user.email ?? "");
       const { data: prof } = await supabase
         .from("profiles")
-        .select("nome,plano")
+        .select("nome")
         .eq("id", userData.user.id)
         .maybeSingle();
       setNome(prof?.nome ?? "");
       setInitialNome(prof?.nome ?? "");
-      setPlano(prof?.plano ?? "gratuito");
+      const assin = await carregarAssinatura(userData.user.id);
+      setAssinatura(assin);
+      setPlano(assin?.plano ?? "gratuito");
       setLoading(false);
       refreshMfa();
     }
     load();
   }, []);
+
+  async function handleCancelar() {
+    if (!confirm("Cancelar a renovação automática da sua assinatura?")) return;
+    setAssinaturaBusy(true);
+    try {
+      const atualizada = await cancelarAssinatura(userId);
+      if (atualizada) {
+        setAssinatura(atualizada);
+        setPlano(atualizada.plano);
+      }
+      toast.success("Assinatura cancelada. Você mantém os benefícios até o fim do período.");
+    } catch {
+      toast.error("Não foi possível cancelar agora.");
+    }
+    setAssinaturaBusy(false);
+  }
+
+  async function handleReativar() {
+    setAssinaturaBusy(true);
+    try {
+      const atualizada = await reativarAssinatura(userId);
+      if (atualizada) {
+        setAssinatura(atualizada);
+        setPlano(atualizada.plano);
+      }
+      toast.success("Renovação automática reativada!");
+    } catch {
+      toast.error("Não foi possível reativar agora.");
+    }
+    setAssinaturaBusy(false);
+  }
+
 
   async function handleDisableMfa() {
     if (!confirm("Desativar a verificação em duas etapas?")) return;
