@@ -4,6 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { toast } from "sonner";
+import {
+  carregarAssinatura,
+  cancelarAssinatura,
+  reativarAssinatura,
+  diasRestantes,
+  formatarData,
+  STATUS_INFO,
+  type Assinatura,
+} from "@/lib/assinatura";
+
 
 
 export const Route = createFileRoute("/_authenticated/perfil")({
