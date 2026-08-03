@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /auth/2fa
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://mente-lucrativa.lovable.app/sitemap.xml
