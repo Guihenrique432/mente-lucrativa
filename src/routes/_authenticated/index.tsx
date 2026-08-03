@@ -185,10 +185,10 @@ function Dashboard() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs/none uppercase tracking-widest opacity-70">Bem-vindo</p>
-            <h1 className="mt-1 text-2xl font-bold">
+            <p className="text-xs/none uppercase tracking-widest opacity-70">
               Olá{nome ? `, ${nome}` : ""} 👋
-            </h1>
+            </p>
+            <h1 className="mt-1 text-2xl font-bold">Visão geral do seu lucro real</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link
