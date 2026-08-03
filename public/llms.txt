@@ -1,0 +1,10 @@
+# Lucro Real
+
+> App brasileiro que mostra o lucro real do seu negócio, controla estoque, metas e alertas financeiros — em linguagem simples, sem jargão contábil.
+
+O Lucro Real é um aplicativo web (PWA) para autônomos, lojistas e pequenos empreendedores. Ele calcula faturamento, despesas, impostos e lucro real, acompanha estoque com alerta de reposição, define metas mensais e traz a Sofia, uma consultora de IA que explica os números em português claro.
+
+## Pages
+
+- [Início](/): Painel com faturamento, lucro real e o Radar do Negócio.
+- [Planos](/planos): Planos Gratuito, Profissional e Premium.
