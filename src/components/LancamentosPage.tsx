@@ -180,7 +180,9 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
           </div>
         </div>
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-widest opacity-70">{PERIODO_LABELS[periodo]}</p>
+          <h1 className="text-xs uppercase tracking-widest opacity-70">
+            {tipo === "receita" ? "Receitas" : "Despesas"} · {PERIODO_LABELS[periodo]}
+          </h1>
           <p className="mt-1 text-4xl font-bold tracking-tight">{BRL(totalPeriodo)}</p>
           <p className="mt-1 text-xs opacity-70">
             {filtered.length} lançamento{filtered.length === 1 ? "" : "s"} · {items.length} no total

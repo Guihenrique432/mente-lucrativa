@@ -108,6 +108,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
 
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "WebSite",
+              name: "Lucro Real",
+              url: "https://mente-lucrativa.lovable.app",
+              inLanguage: "pt-BR",
+            },
+            {
+              "@type": "Organization",
+              name: "Lucro Real",
+              url: "https://mente-lucrativa.lovable.app",
+              logo: "https://mente-lucrativa.lovable.app/icon-512.png",
+            },
+          ],
+        }),
+      },
+    ],
+
+
   }),
   shellComponent: RootShell,
   component: RootComponent,

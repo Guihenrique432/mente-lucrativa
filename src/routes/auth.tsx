@@ -10,7 +10,13 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Entrar — Lucro Real" },
       { name: "description", content: "Acesse sua conta no Lucro Real e veja a saúde do seu negócio." },
+      { property: "og:title", content: "Entrar — Lucro Real" },
+      { property: "og:description", content: "Acesse sua conta no Lucro Real e veja a saúde do seu negócio." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/auth" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/auth" }],
   }),
   ssr: false,
   component: AuthPage,

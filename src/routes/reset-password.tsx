@@ -9,7 +9,13 @@ export const Route = createFileRoute("/reset-password")({
     meta: [
       { title: "Nova senha — Lucro Real" },
       { name: "description", content: "Defina uma nova senha para sua conta." },
+      { property: "og:title", content: "Nova senha — Lucro Real" },
+      { property: "og:description", content: "Defina uma nova senha para sua conta." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/reset-password" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/reset-password" }],
   }),
   ssr: false,
   component: ResetPasswordPage,

@@ -10,7 +10,13 @@ export const Route = createFileRoute("/_authenticated/metas")({
     meta: [
       { title: "Metas — Lucro Real" },
       { name: "description", content: "Defina sua meta de lucro mensal e acompanhe seu progresso." },
+      { property: "og:title", content: "Metas — Lucro Real" },
+      { property: "og:description", content: "Defina sua meta de lucro mensal e acompanhe seu progresso." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/metas" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/metas" }],
   }),
   component: MetasPage,
 });
@@ -105,7 +111,7 @@ function MetasPage() {
           <Target className="h-5 w-5 opacity-80" />
         </div>
         <div className="mt-7">
-          <p className="text-xs uppercase tracking-widest opacity-70">Meta de lucro mensal</p>
+          <h1 className="text-xs uppercase tracking-widest opacity-70">Meta de lucro mensal</h1>
           <p className="mt-1 text-4xl font-bold tracking-tight">{meta > 0 ? BRL(meta) : "—"}</p>
           <p className="mt-1 text-xs opacity-70">
             {meta > 0 ? `Você está em ${stats.progresso}% da meta` : "Defina abaixo a sua meta"}

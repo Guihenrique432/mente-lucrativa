@@ -23,7 +23,13 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
     meta: [
       { title: "Relatórios — Lucro Real" },
       { name: "description", content: "Veja gráficos de faturamento, despesas e lucro dos últimos meses." },
+      { property: "og:title", content: "Relatórios — Lucro Real" },
+      { property: "og:description", content: "Veja gráficos de faturamento, despesas e lucro dos últimos meses." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/relatorios" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/relatorios" }],
   }),
   component: RelatoriosPage,
 });

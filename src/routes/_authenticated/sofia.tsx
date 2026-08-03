@@ -10,7 +10,13 @@ export const Route = createFileRoute("/_authenticated/sofia")({
     meta: [
       { title: "Sofia — Consultora IA da Lucro Real" },
       { name: "description", content: "Converse com a Sofia, sua consultora de IA que analisa suas finanças e sugere ações." },
+      { property: "og:title", content: "Sofia — Consultora IA da Lucro Real" },
+      { property: "og:description", content: "Converse com a Sofia, sua consultora de IA que analisa suas finanças e sugere ações." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/sofia" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/sofia" }],
   }),
   component: SofiaPage,
 });
