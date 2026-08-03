@@ -9,7 +9,13 @@ export const Route = createFileRoute("/forgot-password")({
     meta: [
       { title: "Recuperar senha — Lucro Real" },
       { name: "description", content: "Recupere o acesso à sua conta no Lucro Real." },
+      { property: "og:title", content: "Recuperar senha — Lucro Real" },
+      { property: "og:description", content: "Recupere o acesso à sua conta no Lucro Real." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/forgot-password" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/forgot-password" }],
   }),
   ssr: false,
   component: ForgotPasswordPage,

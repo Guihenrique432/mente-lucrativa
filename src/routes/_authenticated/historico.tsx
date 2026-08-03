@@ -10,7 +10,13 @@ export const Route = createFileRoute("/_authenticated/historico")({
     meta: [
       { title: "Histórico — Lucro Real" },
       { name: "description", content: "Veja todas as alterações feitas em receitas e despesas." },
+      { property: "og:title", content: "Histórico — Lucro Real" },
+      { property: "og:description", content: "Veja todas as alterações feitas em receitas e despesas." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/historico" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/historico" }],
   }),
   component: HistoricoPage,
 });

@@ -9,7 +9,13 @@ export const Route = createFileRoute("/auth/2fa")({
     meta: [
       { title: "Verificação em duas etapas — Lucro Real" },
       { name: "description", content: "Digite o código do seu app autenticador." },
+      { property: "og:title", content: "Verificação em duas etapas — Lucro Real" },
+      { property: "og:description", content: "Digite o código do seu app autenticador." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/auth/2fa" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/auth/2fa" }],
   }),
   ssr: false,
   component: TwoFactorChallengePage,

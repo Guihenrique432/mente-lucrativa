@@ -12,7 +12,13 @@ export const Route = createFileRoute("/_authenticated/planos")({
     meta: [
       { title: "Planos — Lucro Real" },
       { name: "description", content: "Escolha o plano ideal para o seu negócio." },
+      { property: "og:title", content: "Planos — Lucro Real" },
+      { property: "og:description", content: "Escolha o plano ideal para o seu negócio." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/planos" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/planos" }],
   }),
   component: PlanosPage,
 });

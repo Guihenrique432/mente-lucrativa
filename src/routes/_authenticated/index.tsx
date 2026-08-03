@@ -32,7 +32,13 @@ export const Route = createFileRoute("/_authenticated/")({
         content:
           "Entenda seu lucro real, controle estoque e metas em um app simples feito para quem empreende no Brasil.",
       },
+      { property: "og:title", content: "Lucro Real — Controle financeiro para autônomos e lojistas" },
+      { property: "og:description", content: "Entenda seu lucro real, controle estoque e metas em um app simples feito para quem empreende no Brasil." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/" }],
   }),
   component: Dashboard,
 });

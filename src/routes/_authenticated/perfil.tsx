@@ -21,7 +21,13 @@ export const Route = createFileRoute("/_authenticated/perfil")({
     meta: [
       { title: "Perfil — Lucro Real" },
       { name: "description", content: "Gerencie seus dados de conta e assinatura." },
+      { property: "og:title", content: "Perfil — Lucro Real" },
+      { property: "og:description", content: "Gerencie seus dados de conta e assinatura." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/perfil" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/perfil" }],
   }),
   component: PerfilPage,
 });

@@ -10,7 +10,13 @@ export const Route = createFileRoute("/_authenticated/metas")({
     meta: [
       { title: "Metas — Lucro Real" },
       { name: "description", content: "Defina sua meta de lucro mensal e acompanhe seu progresso." },
+      { property: "og:title", content: "Metas — Lucro Real" },
+      { property: "og:description", content: "Defina sua meta de lucro mensal e acompanhe seu progresso." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/metas" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/metas" }],
   }),
   component: MetasPage,
 });

@@ -34,7 +34,13 @@ export const Route = createFileRoute("/_authenticated/estoque")({
     meta: [
       { title: "Estoque — Lucro Real" },
       { name: "description", content: "Cadastre produtos, quantidades, custo e preço de venda. Receba alertas de estoque baixo." },
+      { property: "og:title", content: "Estoque — Lucro Real" },
+      { property: "og:description", content: "Cadastre produtos, quantidades, custo e preço de venda. Receba alertas de estoque baixo." },
+      { property: "og:url", content: "https://mente-lucrativa.lovable.app/estoque" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/estoque" }],
   }),
   component: EstoquePage,
 });
