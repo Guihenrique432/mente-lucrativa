@@ -250,14 +250,21 @@ function RelatoriosPage() {
   const [meses, setMeses] = useState<3 | 6 | 12>(6);
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       setNomeUsuario(meta?.full_name || meta?.name || "");
+      if (data.user) {
+        const assinatura = await carregarAssinatura(data.user.id);
+        setIsPremium(assinatura?.plano === "premium" && assinatura.status !== "vencido");
+      }
     })();
   }, []);
+
 
   useEffect(() => {
     async function load() {
