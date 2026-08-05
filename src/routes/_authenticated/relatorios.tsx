@@ -1,9 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock } from "lucide-react";
+import { toast } from "sonner";
+import { carregarAssinatura } from "@/lib/assinatura";
 import { BottomNav } from "@/components/BottomNav";
 import { SkeletonChart } from "@/components/Skeleton";
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -247,14 +250,21 @@ function RelatoriosPage() {
   const [meses, setMeses] = useState<3 | 6 | 12>(6);
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       setNomeUsuario(meta?.full_name || meta?.name || "");
+      if (data.user) {
+        const assinatura = await carregarAssinatura(data.user.id);
+        setIsPremium(assinatura?.plano === "premium" && assinatura.status !== "vencido");
+      }
     })();
   }, []);
+
 
   useEffect(() => {
     async function load() {
@@ -318,7 +328,15 @@ function RelatoriosPage() {
   };
 
   async function handlePDF() {
+    if (!isPremium) {
+      toast.info("Exportar em PDF é do plano Premium", {
+        description: "Assine o Premium para baixar seus relatórios em PDF.",
+        action: { label: "Ver planos", onClick: () => navigate({ to: "/planos" }) },
+      });
+      return;
+    }
     setExporting("pdf");
+
     try {
       await exportPDF({
         receitas,
@@ -366,11 +384,17 @@ function RelatoriosPage() {
             <button
               onClick={handlePDF}
               disabled={exporting !== null || loading}
-              className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white/90 disabled:opacity-50"
+              title={isPremium ? "Exportar relatório em PDF" : "Disponível no plano Premium"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                isPremium
+                  ? "bg-white text-foreground hover:bg-white/90"
+                  : "bg-white/10 text-white backdrop-blur-md hover:bg-white/15"
+              }`}
             >
-              <FileText className="h-3.5 w-3.5" />
+              {isPremium ? <FileText className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
               {exporting === "pdf" ? "Gerando..." : "PDF"}
             </button>
+
           </div>
         </div>
 
