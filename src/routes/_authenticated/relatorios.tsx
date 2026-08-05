@@ -328,7 +328,15 @@ function RelatoriosPage() {
   };
 
   async function handlePDF() {
+    if (!isPremium) {
+      toast.info("Exportar em PDF é do plano Premium", {
+        description: "Assine o Premium para baixar seus relatórios em PDF.",
+        action: { label: "Ver planos", onClick: () => navigate({ to: "/planos" }) },
+      });
+      return;
+    }
     setExporting("pdf");
+
     try {
       await exportPDF({
         receitas,
