@@ -384,11 +384,17 @@ function RelatoriosPage() {
             <button
               onClick={handlePDF}
               disabled={exporting !== null || loading}
-              className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white/90 disabled:opacity-50"
+              title={isPremium ? "Exportar relatório em PDF" : "Disponível no plano Premium"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                isPremium
+                  ? "bg-white text-foreground hover:bg-white/90"
+                  : "bg-white/10 text-white backdrop-blur-md hover:bg-white/15"
+              }`}
             >
-              <FileText className="h-3.5 w-3.5" />
+              {isPremium ? <FileText className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
               {exporting === "pdf" ? "Gerando..." : "PDF"}
             </button>
+
           </div>
         </div>
 
