@@ -341,7 +341,10 @@ function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Meta do mês</p>
-                <p className="mt-0.5 text-base font-semibold">{BRL(stats.lucro)} de {BRL(meta)}</p>
+                <p className="mt-0.5 text-base font-semibold">
+                  <span className={stats.lucro < 0 ? "text-danger" : ""}>{BRL(stats.lucro)}</span>{" "}
+                  de {BRL(meta)}
+                </p>
               </div>
               <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent">{stats.progressoMeta}%</span>
             </div>
