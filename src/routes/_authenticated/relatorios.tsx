@@ -455,10 +455,10 @@ function RelatoriosPage() {
               <SkeletonChart h={224} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+                <BarChart data={mensal} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v: number) => compact(v)} width={52} />
                   <Tooltip
                     formatter={(v: number) => BRL(v)}
                     contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }}
@@ -483,10 +483,10 @@ function RelatoriosPage() {
               <SkeletonChart h={176} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+                <BarChart data={mensal} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v: number) => compact(v)} width={52} />
                   <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }} />
                   <Bar dataKey="lucro" name="Lucro" radius={[6, 6, 0, 0]}>
                     {mensal.map((m, i) => (
