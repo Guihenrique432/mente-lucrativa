@@ -45,6 +45,7 @@ const BRL2 = (n: number) =>
 
 const compact = (v: number) => {
   const a = Math.abs(v);
+  if (a >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(a >= 10_000_000_000 ? 0 : 1)}bi`;
   if (a >= 1_000_000) return `${(v / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}mi`;
   if (a >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
   return String(v);
