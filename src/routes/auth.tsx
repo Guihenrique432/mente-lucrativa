@@ -107,31 +107,34 @@ function AuthPage() {
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <div
-        className="relative px-6 pt-14 pb-20 text-primary-foreground"
+        className="relative z-0 px-6 pt-14 pb-24 text-primary-foreground"
         style={{ background: "var(--gradient-hero)" }}
       >
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="text-sm font-semibold tracking-wide">Lucro Real</span>
+        <div className="mx-auto w-full max-w-md">
+          <div className="flex items-center gap-2">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <span className="text-sm font-semibold tracking-wide">Lucro Real</span>
+          </div>
+          <h1 className="mt-8 text-3xl font-bold leading-tight">
+            {mode === "signin" ? "Bem-vindo de volta" : "Comece grátis hoje"}
+          </h1>
+          <p className="mt-2 text-sm opacity-80">
+            {mode === "signin"
+              ? "Entre para acompanhar a saúde do seu negócio."
+              : "Crie sua conta em segundos. Sem cartão de crédito."}
+          </p>
         </div>
-        <h1 className="mt-8 text-3xl font-bold leading-tight">
-          {mode === "signin" ? "Bem-vindo de volta 👋" : "Comece grátis hoje"}
-        </h1>
-        <p className="mt-2 text-sm opacity-80">
-          {mode === "signin"
-            ? "Entre para acompanhar a saúde do seu negócio."
-            : "Crie sua conta em segundos. Sem cartão de crédito."}
-        </p>
       </div>
 
       {/* Card */}
-      <div className="-mt-12 px-5 pb-10">
+      <div className="relative z-10 -mt-14 px-5 pb-12">
         <div
-          className="rounded-3xl border border-border bg-card p-6"
+          className="mx-auto w-full max-w-md rounded-3xl border border-border bg-card p-6"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
+
           {/* Google */}
           <button
             onClick={handleGoogle}
@@ -225,9 +228,10 @@ function AuthPage() {
           </p>
         </div>
 
-        <p className="mt-6 px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-6 w-full max-w-md px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
           Ao continuar você concorda com nossos termos de uso e política de privacidade.
         </p>
+
       </div>
     </div>
   );
