@@ -43,6 +43,14 @@ const BRL = (n: number) =>
 const BRL2 = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const compact = (v: number) => {
+  const a = Math.abs(v);
+  if (a >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(a >= 10_000_000_000 ? 0 : 1)}bi`;
+  if (a >= 1_000_000) return `${(v / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}mi`;
+  if (a >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+  return String(v);
+};
+
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
 
@@ -419,7 +427,7 @@ function RelatoriosPage() {
         </div>
       </header>
 
-      <section className="-mt-16 px-5">
+      <section className="relative z-10 -mt-16 px-5">
         <div className="grid grid-cols-2 gap-3">
           <SmallCard
             icon={<TrendingUp className="h-4 w-4" />}
@@ -448,16 +456,16 @@ function RelatoriosPage() {
               <SkeletonChart h={224} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                <BarChart data={mensal} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v: number) => compact(v)} width={52} />
                   <Tooltip
                     formatter={(v: number) => BRL(v)}
-                    contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                    contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }}
                   />
-                  <Bar dataKey="receita" name="Receita" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--danger))" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="receita" name="Receita" fill="var(--success)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="despesa" name="Despesa" fill="var(--danger)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -476,14 +484,14 @@ function RelatoriosPage() {
               <SkeletonChart h={176} />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
-                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                <BarChart data={mensal} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v: number) => compact(v)} width={52} />
+                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }} />
                   <Bar dataKey="lucro" name="Lucro" radius={[6, 6, 0, 0]}>
                     {mensal.map((m, i) => (
-                      <Cell key={i} fill={m.lucro >= 0 ? "hsl(var(--accent))" : "hsl(var(--danger))"} />
+                      <Cell key={i} fill={m.lucro >= 0 ? "var(--accent)" : "var(--danger)"} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -513,7 +521,7 @@ function RelatoriosPage() {
                       <Cell key={i} fill={colorForCategoria(topCategorias[i].name)} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
