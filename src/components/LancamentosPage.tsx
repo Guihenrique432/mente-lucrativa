@@ -319,7 +319,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
         />
       )}
 
-      <BottomNav active="movimentos" fabTo={tipo === "receita" ? "/receitas" : "/despesas"} />
+      <BottomNav active="movimentos" />
     </div>
   );
 }
