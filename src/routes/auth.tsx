@@ -228,9 +228,10 @@ function AuthPage() {
           </p>
         </div>
 
-        <p className="mt-6 px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-6 w-full max-w-md px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
           Ao continuar você concorda com nossos termos de uso e política de privacidade.
         </p>
+
       </div>
     </div>
   );
