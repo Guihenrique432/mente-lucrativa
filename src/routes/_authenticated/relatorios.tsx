@@ -43,6 +43,13 @@ const BRL = (n: number) =>
 const BRL2 = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 
+const compact = (v: number) => {
+  const a = Math.abs(v);
+  if (a >= 1_000_000) return `${(v / 1_000_000).toFixed(a >= 10_000_000 ? 0 : 1)}mi`;
+  if (a >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+  return String(v);
+};
+
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
 
@@ -419,7 +426,7 @@ function RelatoriosPage() {
         </div>
       </header>
 
-      <section className="-mt-16 px-5">
+      <section className="relative z-10 -mt-16 px-5">
         <div className="grid grid-cols-2 gap-3">
           <SmallCard
             icon={<TrendingUp className="h-4 w-4" />}
