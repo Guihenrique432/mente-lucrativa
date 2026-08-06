@@ -449,15 +449,15 @@ function RelatoriosPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
                   <Tooltip
                     formatter={(v: number) => BRL(v)}
-                    contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }}
+                    contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }}
                   />
-                  <Bar dataKey="receita" name="Receita" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--danger))" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="receita" name="Receita" fill="var(--success)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="despesa" name="Despesa" fill="var(--danger)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -477,13 +477,13 @@ function RelatoriosPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={mensal} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
-                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="var(--muted-foreground)" tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)} />
+                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }} />
                   <Bar dataKey="lucro" name="Lucro" radius={[6, 6, 0, 0]}>
                     {mensal.map((m, i) => (
-                      <Cell key={i} fill={m.lucro >= 0 ? "hsl(var(--accent))" : "hsl(var(--danger))"} />
+                      <Cell key={i} fill={m.lucro >= 0 ? "var(--accent)" : "var(--danger)"} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -513,7 +513,7 @@ function RelatoriosPage() {
                       <Cell key={i} fill={colorForCategoria(topCategorias[i].name)} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid hsl(var(--border))", fontSize: 12 }} />
+                  <Tooltip formatter={(v: number) => BRL(v)} contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </PieChart>
               </ResponsiveContainer>
