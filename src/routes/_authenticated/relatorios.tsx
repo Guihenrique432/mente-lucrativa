@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock, Target, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { carregarAssinatura } from "@/lib/assinatura";
 import { BottomNav } from "@/components/BottomNav";
@@ -259,6 +259,7 @@ function RelatoriosPage() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [metaMensal, setMetaMensal] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -267,12 +268,15 @@ function RelatoriosPage() {
       const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       setNomeUsuario(meta?.full_name || meta?.name || "");
       if (data.user) {
-        const assinatura = await carregarAssinatura(data.user.id);
+        const [assinatura, m] = await Promise.all([
+          carregarAssinatura(data.user.id),
+          supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        ]);
         setIsPremium(assinatura?.plano === "premium" && assinatura.status !== "vencido");
+        setMetaMensal(Number(m.data?.meta_lucro ?? 0));
       }
     })();
   }, []);
-
 
   useEffect(() => {
     async function load() {
@@ -293,12 +297,21 @@ function RelatoriosPage() {
   }, [meses]);
 
   const { mensal, totalFat, totalDesp, totalLucro, topCategorias } = useMemo(() => {
-    const months: { key: string; label: string; receita: number; despesa: number; lucro: number }[] = [];
+    const months: {
+      key: string;
+      label: string;
+      receita: number;
+      despesa: number;
+      lucro: number;
+      meta: number;
+      percentualMeta: number;
+      abaixoMeta: boolean;
+    }[] = [];
     const now = new Date();
     for (let i = meses - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      months.push({ key, label: monthLabel(d), receita: 0, despesa: 0, lucro: 0 });
+      months.push({ key, label: monthLabel(d), receita: 0, despesa: 0, lucro: 0, meta: metaMensal, percentualMeta: 0, abaixoMeta: false });
     }
     const findIdx = (data: string) => months.findIndex((m) => data.startsWith(m.key));
     for (const r of receitas) {
@@ -309,7 +322,11 @@ function RelatoriosPage() {
       const i = findIdx(x.data);
       if (i >= 0) months[i].despesa += Number(x.valor || 0);
     }
-    months.forEach((m) => (m.lucro = m.receita - m.despesa));
+    months.forEach((m) => {
+      m.lucro = m.receita - m.despesa;
+      m.percentualMeta = m.meta > 0 ? Math.round((m.lucro / m.meta) * 100) : 0;
+      m.abaixoMeta = m.lucro < 0 || (m.meta > 0 && m.percentualMeta < 100);
+    });
 
     const totalFat = months.reduce((a, b) => a + b.receita, 0);
     const totalDesp = months.reduce((a, b) => a + b.despesa, 0);
@@ -323,7 +340,7 @@ function RelatoriosPage() {
       .map(([name, value]) => ({ name, value }));
 
     return { mensal: months, totalFat, totalDesp, totalLucro, topCategorias };
-  }, [receitas, despesas, meses]);
+  }, [receitas, despesas, meses, metaMensal]);
 
   const colorForCategoria = (name: string) => {
     const n = name.toLowerCase();
@@ -498,6 +515,86 @@ function RelatoriosPage() {
               </ResponsiveContainer>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="mt-5 px-5">
+        <div
+          className="rounded-3xl border border-border bg-card p-5"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold">Meta mês a mês</h2>
+              <p className="text-xs text-muted-foreground">
+                {metaMensal > 0 ? `Meta definida: ${BRL(metaMensal)}/mês` : "Defina uma meta em /metas"}
+              </p>
+            </div>
+            <Link
+              to="/metas"
+              className="text-xs font-semibold text-accent no-underline"
+            >
+              Ajustar →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="mt-4"><SkeletonChart h={120} /></div>
+          ) : metaMensal === 0 ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Sem meta definida. Defina um valor para acompanhar o desempenho mensal.
+            </p>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {mensal.map((m, i) => {
+                const negativo = m.lucro < 0;
+                const percentual = m.meta > 0 ? Math.min(100, Math.max(0, m.percentualMeta)) : 0;
+                const falta = Math.max(0, m.meta - m.lucro);
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between rounded-2xl border p-3 transition ${
+                      negativo
+                        ? "border-danger/40 bg-danger/5"
+                        : "border-border bg-background"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`grid h-8 w-8 place-items-center rounded-lg ${
+                          negativo ? "bg-danger/15 text-danger" : "bg-success/10 text-success"
+                        }`}
+                      >
+                        {negativo ? <AlertTriangle className="h-4 w-4" /> : <Target className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">{m.label}</p>
+                        <p className={`text-sm font-bold ${negativo ? "text-danger" : "text-foreground"}`}>
+                          {BRL(m.lucro)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          negativo ? "bg-danger/15 text-danger" : "bg-accent/10 text-accent"
+                        }`}
+                      >
+                        {negativo ? `${m.percentualMeta}%` : `${percentual}%`}
+                      </span>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {negativo
+                          ? `${BRL(Math.abs(m.lucro))} de prejuízo`
+                          : falta > 0
+                            ? `faltam ${BRL(falta)}`
+                            : "meta batida"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
