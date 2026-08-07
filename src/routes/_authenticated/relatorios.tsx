@@ -259,6 +259,7 @@ function RelatoriosPage() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [metaMensal, setMetaMensal] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -267,12 +268,15 @@ function RelatoriosPage() {
       const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       setNomeUsuario(meta?.full_name || meta?.name || "");
       if (data.user) {
-        const assinatura = await carregarAssinatura(data.user.id);
+        const [assinatura, m] = await Promise.all([
+          carregarAssinatura(data.user.id),
+          supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        ]);
         setIsPremium(assinatura?.plano === "premium" && assinatura.status !== "vencido");
+        setMetaMensal(Number(m.data?.meta_lucro ?? 0));
       }
     })();
   }, []);
-
 
   useEffect(() => {
     async function load() {
