@@ -532,7 +532,7 @@ function RelatoriosPage() {
             </div>
             <Link
               to="/metas"
-              className="text-xs font-semibold text-accent"
+              className="text-xs font-semibold text-accent no-underline"
             >
               Ajustar →
             </Link>
