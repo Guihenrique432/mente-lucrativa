@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock, Target, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { carregarAssinatura } from "@/lib/assinatura";
 import { BottomNav } from "@/components/BottomNav";
