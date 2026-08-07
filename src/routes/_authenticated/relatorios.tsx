@@ -297,12 +297,21 @@ function RelatoriosPage() {
   }, [meses]);
 
   const { mensal, totalFat, totalDesp, totalLucro, topCategorias } = useMemo(() => {
-    const months: { key: string; label: string; receita: number; despesa: number; lucro: number }[] = [];
+    const months: {
+      key: string;
+      label: string;
+      receita: number;
+      despesa: number;
+      lucro: number;
+      meta: number;
+      percentualMeta: number;
+      abaixoMeta: boolean;
+    }[] = [];
     const now = new Date();
     for (let i = meses - 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      months.push({ key, label: monthLabel(d), receita: 0, despesa: 0, lucro: 0 });
+      months.push({ key, label: monthLabel(d), receita: 0, despesa: 0, lucro: 0, meta: metaMensal, percentualMeta: 0, abaixoMeta: false });
     }
     const findIdx = (data: string) => months.findIndex((m) => data.startsWith(m.key));
     for (const r of receitas) {
@@ -313,7 +322,11 @@ function RelatoriosPage() {
       const i = findIdx(x.data);
       if (i >= 0) months[i].despesa += Number(x.valor || 0);
     }
-    months.forEach((m) => (m.lucro = m.receita - m.despesa));
+    months.forEach((m) => {
+      m.lucro = m.receita - m.despesa;
+      m.percentualMeta = m.meta > 0 ? Math.round((m.lucro / m.meta) * 100) : 0;
+      m.abaixoMeta = m.lucro < 0 || (m.meta > 0 && m.percentualMeta < 100);
+    });
 
     const totalFat = months.reduce((a, b) => a + b.receita, 0);
     const totalDesp = months.reduce((a, b) => a + b.despesa, 0);
@@ -327,7 +340,7 @@ function RelatoriosPage() {
       .map(([name, value]) => ({ name, value }));
 
     return { mensal: months, totalFat, totalDesp, totalLucro, topCategorias };
-  }, [receitas, despesas, meses]);
+  }, [receitas, despesas, meses, metaMensal]);
 
   const colorForCategoria = (name: string) => {
     const n = name.toLowerCase();
