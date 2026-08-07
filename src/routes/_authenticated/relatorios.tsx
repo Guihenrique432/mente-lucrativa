@@ -523,6 +523,86 @@ function RelatoriosPage() {
           className="rounded-3xl border border-border bg-card p-5"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold">Meta mês a mês</h2>
+              <p className="text-xs text-muted-foreground">
+                {metaMensal > 0 ? `Meta definida: ${BRL(metaMensal)}/mês` : "Defina uma meta em /metas"}
+              </p>
+            </div>
+            <Link
+              to="/metas"
+              className="text-xs font-semibold text-accent"
+            >
+              Ajustar →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="mt-4"><SkeletonChart h={120} /></div>
+          ) : metaMensal === 0 ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              Sem meta definida. Defina um valor para acompanhar o desempenho mensal.
+            </p>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {mensal.map((m, i) => {
+                const negativo = m.lucro < 0;
+                const percentual = m.meta > 0 ? Math.min(100, Math.max(0, m.percentualMeta)) : 0;
+                const falta = Math.max(0, m.meta - m.lucro);
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between rounded-2xl border p-3 transition ${
+                      negativo
+                        ? "border-danger/40 bg-danger/5"
+                        : "border-border bg-background"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`grid h-8 w-8 place-items-center rounded-lg ${
+                          negativo ? "bg-danger/15 text-danger" : "bg-success/10 text-success"
+                        }`}
+                      >
+                        {negativo ? <AlertTriangle className="h-4 w-4" /> : <Target className="h-4 w-4" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">{m.label}</p>
+                        <p className={`text-sm font-bold ${negativo ? "text-danger" : "text-foreground"}`}>
+                          {BRL(m.lucro)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          negativo ? "bg-danger/15 text-danger" : "bg-accent/10 text-accent"
+                        }`}
+                      >
+                        {negativo ? `${m.percentualMeta}%` : `${percentual}%`}
+                      </span>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {negativo
+                          ? `${BRL(Math.abs(m.lucro))} de prejuízo`
+                          : falta > 0
+                            ? `faltam ${BRL(falta)}`
+                            : "meta batida"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-5 px-5">
+        <div
+          className="rounded-3xl border border-border bg-card p-5"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
           <h2 className="text-sm font-bold">Onde vai seu dinheiro</h2>
           <p className="text-xs text-muted-foreground">Maiores categorias de despesa</p>
           {loading ? (
