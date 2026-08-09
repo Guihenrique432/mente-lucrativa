@@ -126,9 +126,14 @@ export async function carregarAssinatura(userId: string): Promise<Assinatura | n
   return normalizar(atual);
 }
 
-export async function ativarPlano(userId: string, plano: Exclude<PlanoId, "gratuito">) {
+export async function ativarPlano(
+  userId: string,
+  plano: Exclude<PlanoId, "gratuito">,
+  ciclo: Ciclo = "mensal",
+) {
   const expira = new Date();
-  expira.setMonth(expira.getMonth() + 1);
+  if (ciclo === "anual") expira.setFullYear(expira.getFullYear() + 1);
+  else expira.setMonth(expira.getMonth() + 1);
   const { data, error } = await supabase
     .from("profiles")
     .update({
