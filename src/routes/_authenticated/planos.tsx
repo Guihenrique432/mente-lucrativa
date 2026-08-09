@@ -4,8 +4,15 @@ import { Check, Sparkles, Crown, Zap } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ativarPlano, carregarAssinatura } from "@/lib/assinatura";
-
+import {
+  ativarPlano,
+  carregarAssinatura,
+  economiaAnual,
+  formatarPreco,
+  PLANO_PRECOS,
+  type Ciclo,
+  type PlanoId,
+} from "@/lib/assinatura";
 
 export const Route = createFileRoute("/_authenticated/planos")({
   head: () => ({
@@ -23,67 +30,67 @@ export const Route = createFileRoute("/_authenticated/planos")({
   component: PlanosPage,
 });
 
-type PlanId = "gratuito" | "profissional" | "premium";
+type PagoId = Exclude<PlanoId, "gratuito">;
 
-const plans = [
+const plans: {
+  id: PagoId;
+  name: string;
+  tagline: string;
+  icon: typeof Zap;
+  color: string;
+  features: string[];
+  highlight: boolean;
+}[] = [
   {
-    id: "gratuito" as PlanId,
-    name: "Core",
-    price: "R$ 0",
-    period: "para sempre",
-    tagline: "Para começar a organizar seu negócio",
+    id: "start",
+    name: "Start",
+    tagline: "Para quem quer organizar as finanças.",
     icon: Sparkles,
     color: "from-slate-500 to-slate-700",
     features: [
-      "Até 20 produtos no estoque",
-      "Fluxo de caixa básico",
+      "Receitas e despesas ilimitadas",
+      "Controle de estoque",
       "Dashboard com lucro real",
       "Alertas de estoque baixo",
     ],
-    cta: "Plano atual",
     highlight: false,
   },
   {
-    id: "profissional" as PlanId,
-    name: "Plus",
-    price: "R$ 29,90",
-    period: "por mês",
-    tagline: "Para quem quer crescer com inteligência",
+    id: "pro",
+    name: "Pro",
+    tagline: "Para quem quer automações, análises e IA financeira.",
     icon: Zap,
     color: "from-blue-500 to-blue-700",
     features: [
-      "Produtos ilimitados",
+      "Tudo do Start",
       "Assistente Sofia com IA",
       "Relatórios completos",
       "Metas mensais avançadas",
       "Suporte prioritário",
     ],
-    cta: "Assinar Plus",
     highlight: true,
   },
   {
-    id: "premium" as PlanId,
-    name: "Prime",
-    price: "R$ 59,90",
-    period: "por mês",
-    tagline: "Para múltiplas lojas e análises avançadas",
+    id: "business",
+    name: "Business",
+    tagline: "Para empresas, equipes e recursos avançados.",
     icon: Crown,
     color: "from-amber-500 to-orange-600",
     features: [
-      "Tudo do Plus",
+      "Tudo do Pro",
       "Múltiplas lojas",
       "Relatórios avançados",
       "Exportação em PDF",
       "IA ilimitada",
       "Consultoria mensal",
     ],
-    cta: "Assinar Prime",
     highlight: false,
   },
 ];
 
 function PlanosPage() {
-  const [current, setCurrent] = useState<PlanId>("gratuito");
+  const [current, setCurrent] = useState<PlanoId>("gratuito");
+  const [ciclo, setCiclo] = useState<Ciclo>("mensal");
   const [userId, setUserId] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -98,24 +105,22 @@ function PlanosPage() {
   }, []);
 
   async function handleSelect(plan: (typeof plans)[number]) {
-    if (plan.id === "gratuito") {
-      toast.info("Você já está no plano Core.");
-      return;
-    }
     if (!userId || busy) return;
     setBusy(true);
     try {
-      const assin = await ativarPlano(userId, plan.id as "profissional" | "premium");
+      const assin = await ativarPlano(userId, plan.id, ciclo);
       if (assin) setCurrent(assin.plano);
-      toast.success(`Assinatura ${plan.name} ativada (teste)`, {
-        description: "Renovação automática ativa. Você pode cancelar no seu perfil.",
+      toast.success(`Assinatura ${plan.name} ${ciclo} ativada (teste)`, {
+        description:
+          ciclo === "anual"
+            ? "Renovação automática anual ativa. Você pode cancelar no seu perfil."
+            : "Renovação automática mensal ativa. Você pode cancelar no seu perfil.",
       });
     } catch {
       toast.error("Não foi possível ativar o plano agora.");
     }
     setBusy(false);
   }
-
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -127,22 +132,43 @@ function PlanosPage() {
           <p className="text-xs uppercase tracking-wider opacity-80">Planos</p>
           <h1 className="mt-1 text-2xl font-bold">Escolha o plano ideal</h1>
           <p className="mt-1 text-sm opacity-90">
-            Planos mensais Core, Plus e Prime para cada fase do seu negócio.
+            Pague por mês ou economize assinando o ano inteiro.
           </p>
         </div>
       </header>
 
       <main className="mx-auto -mt-4 max-w-md space-y-4 px-4">
+        <div className="flex rounded-2xl border border-border bg-surface p-1 shadow-sm">
+          {(["mensal", "anual"] as Ciclo[]).map((c) => (
+            <button
+              key={c}
+              onClick={() => setCiclo(c)}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold capitalize transition ${
+                ciclo === c
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {c}
+              {c === "anual" && (
+                <span className="ml-1.5 text-[10px] font-bold uppercase text-success">
+                  -17%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isCurrent = plan.id === current;
+          const precos = PLANO_PRECOS[plan.id];
+          const economia = economiaAnual(plan.id);
           return (
             <article
               key={plan.id}
               className={`rounded-2xl border bg-surface p-5 shadow-sm ${
-                plan.highlight
-                  ? "border-accent ring-2 ring-accent/40"
-                  : "border-border"
+                plan.highlight ? "border-accent ring-2 ring-accent/40" : "border-border"
               }`}
             >
               {plan.highlight && (
@@ -163,9 +189,22 @@ function PlanosPage() {
               </div>
 
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-foreground">{plan.price}</span>
-                <span className="text-sm text-muted-foreground">/ {plan.period}</span>
+                <span className="text-3xl font-bold text-foreground">
+                  {formatarPreco(ciclo === "anual" ? precos.anual : precos.mensal)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  / {ciclo === "anual" ? "ano" : "mês"}
+                </span>
               </div>
+              {ciclo === "anual" ? (
+                <p className="mt-1 text-xs font-medium text-success">
+                  Economize {formatarPreco(economia.valor)} por ano ({economia.percentual}% off)
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ou {formatarPreco(precos.anual)} por ano
+                </p>
+              )}
 
               <ul className="mt-4 space-y-2">
                 {plan.features.map((f) => (
@@ -178,8 +217,8 @@ function PlanosPage() {
 
               <button
                 onClick={() => handleSelect(plan)}
-                disabled={isCurrent}
-                className={`mt-5 w-full rounded-xl py-3 text-sm font-semibold transition ${
+                disabled={isCurrent || busy}
+                className={`mt-5 w-full rounded-xl py-3 text-sm font-semibold transition disabled:opacity-60 ${
                   isCurrent
                     ? "cursor-not-allowed bg-muted text-muted-foreground"
                     : plan.highlight
@@ -192,7 +231,7 @@ function PlanosPage() {
                     : undefined
                 }
               >
-                {isCurrent ? "Plano atual" : plan.cta}
+                {isCurrent ? "Plano atual" : `Assinar ${plan.name}`}
               </button>
             </article>
           );
