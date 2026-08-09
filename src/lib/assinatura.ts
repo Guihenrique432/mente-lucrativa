@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type PlanoId = "gratuito" | "profissional" | "premium";
+export type PlanoId = "gratuito" | "start" | "pro" | "business";
 export type PlanoStatus = "ativo" | "cancelado" | "vencido";
+export type Ciclo = "mensal" | "anual";
 
 export type Assinatura = {
   plano: PlanoId;
@@ -12,10 +13,32 @@ export type Assinatura = {
 };
 
 export const PLANO_NOMES: Record<PlanoId, string> = {
-  gratuito: "Core",
-  profissional: "Plus",
-  premium: "Prime",
+  gratuito: "Gratuito",
+  start: "Start",
+  pro: "Pro",
+  business: "Business",
 };
+
+/** Preços em reais. O anual já é o valor total do ano (com desconto). */
+export const PLANO_PRECOS: Record<
+  Exclude<PlanoId, "gratuito">,
+  { mensal: number; anual: number }
+> = {
+  start: { mensal: 19.9, anual: 199 },
+  pro: { mensal: 49.9, anual: 499 },
+  business: { mensal: 99.9, anual: 999 },
+};
+
+export function formatarPreco(valor: number) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Quanto o anual economiza em relação a 12 meses do mensal. */
+export function economiaAnual(plano: Exclude<PlanoId, "gratuito">) {
+  const p = PLANO_PRECOS[plano];
+  const cheio = p.mensal * 12;
+  return { valor: cheio - p.anual, percentual: Math.round((1 - p.anual / cheio) * 100) };
+}
 
 export const STATUS_INFO: Record<
   PlanoStatus,
