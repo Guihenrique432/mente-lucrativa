@@ -327,7 +327,7 @@ function Dashboard() {
               <Crown className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">Desbloqueie o Profissional</p>
+              <p className="text-sm font-semibold text-foreground">Desbloqueie o Plus</p>
               <p className="text-xs text-muted-foreground">Produtos ilimitados e mais</p>
             </div>
           </div>
