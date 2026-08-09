@@ -43,7 +43,7 @@ const plans: {
 }[] = [
   {
     id: "start",
-    name: "Start",
+    name: "Core",
     tagline: "Para quem quer organizar as finanças.",
     icon: Sparkles,
     color: "from-slate-500 to-slate-700",
@@ -57,12 +57,12 @@ const plans: {
   },
   {
     id: "pro",
-    name: "Pro",
+    name: "Plus",
     tagline: "Para quem quer automações, análises e IA financeira.",
     icon: Zap,
     color: "from-blue-500 to-blue-700",
     features: [
-      "Tudo do Start",
+      "Tudo do Core",
       "Assistente Sofia com IA",
       "Relatórios completos",
       "Metas mensais avançadas",
@@ -72,12 +72,12 @@ const plans: {
   },
   {
     id: "business",
-    name: "Business",
+    name: "Prime",
     tagline: "Para empresas, equipes e recursos avançados.",
     icon: Crown,
     color: "from-amber-500 to-orange-600",
     features: [
-      "Tudo do Pro",
+      "Tudo do Plus",
       "Múltiplas lojas",
       "Relatórios avançados",
       "Exportação em PDF",

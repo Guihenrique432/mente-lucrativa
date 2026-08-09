@@ -34,9 +34,9 @@ export const Route = createFileRoute("/_authenticated/perfil")({
 
 const PLANOS: Record<string, { nome: string; cor: string }> = {
   gratuito: { nome: "Gratuito", cor: "bg-slate-500" },
-  start: { nome: "Start", cor: "bg-slate-600" },
-  pro: { nome: "Pro", cor: "bg-blue-600" },
-  business: { nome: "Business", cor: "bg-amber-500" },
+  start: { nome: "Core", cor: "bg-slate-600" },
+  pro: { nome: "Plus", cor: "bg-blue-600" },
+  business: { nome: "Prime", cor: "bg-amber-500" },
 };
 
 function PerfilPage() {

@@ -14,9 +14,9 @@ export type Assinatura = {
 
 export const PLANO_NOMES: Record<PlanoId, string> = {
   gratuito: "Gratuito",
-  start: "Start",
-  pro: "Pro",
-  business: "Business",
+  start: "Core",
+  pro: "Plus",
+  business: "Prime",
 };
 
 /** Preços em reais. O anual já é o valor total do ano (com desconto). */
@@ -57,7 +57,7 @@ export const STATUS_INFO: Record<
   vencido: {
     rotulo: "Vencida",
     classe: "bg-danger/15 text-danger",
-    descricao: "O período acabou e sua conta voltou para o plano Core.",
+    descricao: "O período acabou e sua conta voltou para o plano Gratuito.",
   },
 };
 

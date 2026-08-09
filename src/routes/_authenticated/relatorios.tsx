@@ -354,8 +354,8 @@ function RelatoriosPage() {
 
   async function handlePDF() {
     if (!isPremium) {
-      toast.info("Exportar em PDF é do plano Business", {
-        description: "Assine o Business para baixar seus relatórios em PDF.",
+      toast.info("Exportar em PDF é do plano Prime", {
+        description: "Assine o Prime para baixar seus relatórios em PDF.",
         action: { label: "Ver planos", onClick: () => navigate({ to: "/planos" }) },
       });
       return;
@@ -409,7 +409,7 @@ function RelatoriosPage() {
             <button
               onClick={handlePDF}
               disabled={exporting !== null || loading}
-              title={isPremium ? "Exportar relatório em PDF" : "Disponível no plano Business"}
+              title={isPremium ? "Exportar relatório em PDF" : "Disponível no plano Prime"}
               className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
                 isPremium
                   ? "bg-white text-foreground hover:bg-white/90"
