@@ -28,7 +28,7 @@ type PlanId = "gratuito" | "profissional" | "premium";
 const plans = [
   {
     id: "gratuito" as PlanId,
-    name: "Gratuito",
+    name: "Core",
     price: "R$ 0",
     period: "para sempre",
     tagline: "Para começar a organizar seu negócio",
@@ -45,7 +45,7 @@ const plans = [
   },
   {
     id: "profissional" as PlanId,
-    name: "Profissional",
+    name: "Plus",
     price: "R$ 29,90",
     period: "por mês",
     tagline: "Para quem quer crescer com inteligência",
@@ -58,26 +58,26 @@ const plans = [
       "Metas mensais avançadas",
       "Suporte prioritário",
     ],
-    cta: "Assinar Profissional",
+    cta: "Assinar Plus",
     highlight: true,
   },
   {
     id: "premium" as PlanId,
-    name: "Premium",
+    name: "Prime",
     price: "R$ 59,90",
     period: "por mês",
     tagline: "Para múltiplas lojas e análises avançadas",
     icon: Crown,
     color: "from-amber-500 to-orange-600",
     features: [
-      "Tudo do Profissional",
+      "Tudo do Plus",
       "Múltiplas lojas",
       "Relatórios avançados",
       "Exportação em PDF",
       "IA ilimitada",
       "Consultoria mensal",
     ],
-    cta: "Assinar Premium",
+    cta: "Assinar Prime",
     highlight: false,
   },
 ];
@@ -99,7 +99,7 @@ function PlanosPage() {
 
   async function handleSelect(plan: (typeof plans)[number]) {
     if (plan.id === "gratuito") {
-      toast.info("Você já está no plano Gratuito.");
+      toast.info("Você já está no plano Core.");
       return;
     }
     if (!userId || busy) return;
@@ -127,7 +127,7 @@ function PlanosPage() {
           <p className="text-xs uppercase tracking-wider opacity-80">Planos</p>
           <h1 className="mt-1 text-2xl font-bold">Escolha o plano ideal</h1>
           <p className="mt-1 text-sm opacity-90">
-            Comece grátis e evolua quando o seu negócio crescer.
+            Planos mensais Core, Plus e Prime para cada fase do seu negócio.
           </p>
         </div>
       </header>

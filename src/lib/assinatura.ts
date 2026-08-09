@@ -12,9 +12,9 @@ export type Assinatura = {
 };
 
 export const PLANO_NOMES: Record<PlanoId, string> = {
-  gratuito: "Gratuito",
-  profissional: "Profissional",
-  premium: "Premium",
+  gratuito: "Core",
+  profissional: "Plus",
+  premium: "Prime",
 };
 
 export const STATUS_INFO: Record<
@@ -34,7 +34,7 @@ export const STATUS_INFO: Record<
   vencido: {
     rotulo: "Vencida",
     classe: "bg-danger/15 text-danger",
-    descricao: "O período acabou e sua conta voltou para o plano Gratuito.",
+    descricao: "O período acabou e sua conta voltou para o plano Core.",
   },
 };
 
