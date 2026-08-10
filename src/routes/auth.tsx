@@ -42,35 +42,16 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: { full_name: nome },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
-          toast.success("Conta criada! Vamos começar 🎉");
-          navigate({ to: "/" });
-        } else {
-          toast.success("Conta criada! Você já pode entrar.");
-          setMode("signin");
-        }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
+        navigate({ to: "/auth/2fa" });
       } else {
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
-          navigate({ to: "/auth/2fa" });
-        } else {
-          toast.success("Bem-vindo de volta!");
-          navigate({ to: "/" });
-        }
+        toast.success("Bem-vindo de volta!");
+        navigate({ to: "/" });
       }
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Algo deu errado";
       const friendly =
