@@ -178,16 +178,15 @@ function AuthPage() {
               required
               minLength={6}
             />
-            {mode === "signin" && (
-              <div className="flex justify-end -mt-1">
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-accent hover:underline"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-            )}
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+
 
 
             <button
