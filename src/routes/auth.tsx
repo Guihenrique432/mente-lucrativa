@@ -117,14 +117,11 @@ function AuthPage() {
             </span>
             <span className="text-sm font-semibold tracking-wide">Lucro Real</span>
           </div>
-          <h1 className="mt-8 text-3xl font-bold leading-tight">
-            {mode === "signin" ? "Bem-vindo de volta" : "Comece grátis hoje"}
-          </h1>
+          <h1 className="mt-8 text-3xl font-bold leading-tight">Bem-vindo de volta</h1>
           <p className="mt-2 text-sm opacity-80">
-            {mode === "signin"
-              ? "Entre para acompanhar a saúde do seu negócio."
-              : "Crie sua conta em segundos. Sem cartão de crédito."}
+            Entre para acompanhar a saúde do seu negócio.
           </p>
+
         </div>
       </div>
 
