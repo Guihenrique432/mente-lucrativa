@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
+
 import {
   carregarAssinatura,
   cancelarAssinatura,
