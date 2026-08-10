@@ -158,16 +158,7 @@ function AuthPage() {
           </div>
 
           <form onSubmit={handleEmailSubmit} className="space-y-3">
-            {mode === "signup" && (
-              <Field
-                label="Seu nome"
-                icon={<Sparkles className="h-4 w-4" />}
-                value={nome}
-                onChange={setNome}
-                placeholder="Como devemos te chamar?"
-                required
-              />
-            )}
+
             <Field
               label="Email"
               icon={<Mail className="h-4 w-4" />}
