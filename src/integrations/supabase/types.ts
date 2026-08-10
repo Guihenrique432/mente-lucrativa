@@ -83,6 +83,45 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          label: string | null
+          status: Database["public"]["Enums"]["invite_status"]
+          token_hash: string
+          token_hint: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          label?: string | null
+          status?: Database["public"]["Enums"]["invite_status"]
+          token_hash: string
+          token_hint?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          label?: string | null
+          status?: Database["public"]["Enums"]["invite_status"]
+          token_hash?: string
+          token_hint?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           created_at: string
@@ -253,14 +292,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       expirar_assinaturas: { Args: never; Returns: undefined }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
+      invite_status: "pending" | "used" | "expired" | "revoked"
       tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
@@ -389,6 +458,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
+      invite_status: ["pending", "used", "expired", "revoked"],
       tipo_movimentacao: ["entrada", "saida"],
     },
   },
