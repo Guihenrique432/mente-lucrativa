@@ -553,3 +553,38 @@ function EnrollMfaModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
     </div>
   );
 }
+
+function AdminLink() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    amIAdmin()
+      .then((r) => alive && setIsAdmin(r.admin))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!isAdmin) return null;
+
+  return (
+    <Link
+      to="/admin"
+      className="flex items-center justify-between rounded-2xl border border-border bg-card p-5"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+          <Ticket className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground">Painel do fundador</p>
+          <p className="text-xs text-muted-foreground">Criar e gerenciar convites</p>
+        </div>
+      </div>
+      <span className="text-xs font-semibold text-accent">→</span>
+    </Link>
+  );
+}
