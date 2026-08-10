@@ -24,10 +24,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -38,39 +37,21 @@ function AuthPage() {
     });
   }, [navigate]);
 
+
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: { full_name: nome },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
-          toast.success("Conta criada! Vamos começar 🎉");
-          navigate({ to: "/" });
-        } else {
-          toast.success("Conta criada! Você já pode entrar.");
-          setMode("signin");
-        }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
+        navigate({ to: "/auth/2fa" });
       } else {
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
-          navigate({ to: "/auth/2fa" });
-        } else {
-          toast.success("Bem-vindo de volta!");
-          navigate({ to: "/" });
-        }
+        toast.success("Bem-vindo de volta!");
+        navigate({ to: "/" });
       }
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Algo deu errado";
       const friendly =
@@ -117,14 +98,11 @@ function AuthPage() {
             </span>
             <span className="text-sm font-semibold tracking-wide">Lucro Real</span>
           </div>
-          <h1 className="mt-8 text-3xl font-bold leading-tight">
-            {mode === "signin" ? "Bem-vindo de volta" : "Comece grátis hoje"}
-          </h1>
+          <h1 className="mt-8 text-3xl font-bold leading-tight">Bem-vindo de volta</h1>
           <p className="mt-2 text-sm opacity-80">
-            {mode === "signin"
-              ? "Entre para acompanhar a saúde do seu negócio."
-              : "Crie sua conta em segundos. Sem cartão de crédito."}
+            Entre para acompanhar a saúde do seu negócio.
           </p>
+
         </div>
       </div>
 
@@ -158,16 +136,7 @@ function AuthPage() {
           </div>
 
           <form onSubmit={handleEmailSubmit} className="space-y-3">
-            {mode === "signup" && (
-              <Field
-                label="Seu nome"
-                icon={<Sparkles className="h-4 w-4" />}
-                value={nome}
-                onChange={setNome}
-                placeholder="Como devemos te chamar?"
-                required
-              />
-            )}
+
             <Field
               label="Email"
               icon={<Mail className="h-4 w-4" />}
@@ -187,16 +156,15 @@ function AuthPage() {
               required
               minLength={6}
             />
-            {mode === "signin" && (
-              <div className="flex justify-end -mt-1">
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-accent hover:underline"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-            )}
+            <div className="flex justify-end -mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+
 
 
             <button
@@ -209,7 +177,7 @@ function AuthPage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  {mode === "signin" ? "Entrar" : "Criar conta"}
+                  Entrar
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -217,15 +185,9 @@ function AuthPage() {
           </form>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
-            {mode === "signin" ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
-            <button
-              type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="font-semibold text-accent"
-            >
-              {mode === "signin" ? "Criar agora" : "Entrar"}
-            </button>
+            O Lucro Real é privado: novas contas só com convite.
           </p>
+
         </div>
 
         <p className="mx-auto mt-6 w-full max-w-md px-2 text-center text-[11px] leading-relaxed text-muted-foreground">

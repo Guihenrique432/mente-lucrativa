@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X } from "lucide-react";
+import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
+
 import {
   carregarAssinatura,
   cancelarAssinatura,
@@ -379,8 +381,10 @@ function PerfilPage() {
           )}
         </section>
 
+        <AdminLink />
 
         <button
+
           onClick={handleSignOut}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-danger/30 bg-danger/5 py-3 text-sm font-semibold text-danger transition hover:bg-danger/10"
         >
@@ -547,5 +551,40 @@ function EnrollMfaModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         )}
       </div>
     </div>
+  );
+}
+
+function AdminLink() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    amIAdmin()
+      .then((r) => alive && setIsAdmin(r.admin))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!isAdmin) return null;
+
+  return (
+    <Link
+      to="/admin"
+      className="flex items-center justify-between rounded-2xl border border-border bg-card p-5"
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+          <Ticket className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground">Painel do fundador</p>
+          <p className="text-xs text-muted-foreground">Criar e gerenciar convites</p>
+        </div>
+      </div>
+      <span className="text-xs font-semibold text-accent">→</span>
+    </Link>
   );
 }
