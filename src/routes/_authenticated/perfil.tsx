@@ -381,8 +381,10 @@ function PerfilPage() {
           )}
         </section>
 
+        <AdminLink />
 
         <button
+
           onClick={handleSignOut}
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-danger/30 bg-danger/5 py-3 text-sm font-semibold text-danger transition hover:bg-danger/10"
         >
