@@ -217,15 +217,9 @@ function AuthPage() {
           </form>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
-            {mode === "signin" ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
-            <button
-              type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="font-semibold text-accent"
-            >
-              {mode === "signin" ? "Criar agora" : "Entrar"}
-            </button>
+            O Lucro Real é privado: novas contas só com convite.
           </p>
+
         </div>
 
         <p className="mx-auto mt-6 w-full max-w-md px-2 text-center text-[11px] leading-relaxed text-muted-foreground">
