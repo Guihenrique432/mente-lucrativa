@@ -24,10 +24,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const mode = "signin" as const;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -37,6 +36,7 @@ function AuthPage() {
       if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
+
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
