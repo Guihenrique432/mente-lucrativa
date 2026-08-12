@@ -238,7 +238,80 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
         </div>
       </section>
 
+      <section className="mt-3 px-5">
+        <div className="flex rounded-xl border border-border bg-card p-1">
+          {(["lista", "tabela"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setVista(v)}
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold capitalize transition ${
+                vista === v
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {v === "lista" ? "Lista" : "Planilha por categoria"}
+            </button>
+          ))}
+        </div>
+      </section>
 
+      {vista === "tabela" ? (
+        <section className="mt-4 px-5">
+          {loading ? (
+            <SkeletonList n={5} />
+          ) : porCategoria.length === 0 ? (
+            <EmptyState
+              tipo={tipo}
+              onAdd={() => setShowForm(true)}
+              periodo={periodo}
+              onClearPeriodo={() => setPeriodo("tudo")}
+            />
+          ) : (
+            <div
+              className="overflow-hidden rounded-2xl border border-border bg-card"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-2 text-left font-semibold">Categoria</th>
+                    <th className="px-2 py-2 text-right font-semibold">Qtd</th>
+                    <th className="px-2 py-2 text-right font-semibold">%</th>
+                    <th className="px-3 py-2 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porCategoria.map((c) => (
+                    <tr key={c.categoria} className="border-b border-border last:border-0">
+                      <td className="px-3 py-2.5 font-medium">{c.categoria}</td>
+                      <td className="px-2 py-2.5 text-right text-muted-foreground">{c.qtd}</td>
+                      <td className="px-2 py-2.5 text-right text-muted-foreground">
+                        {totalPeriodo > 0 ? Math.round((c.total / totalPeriodo) * 100) : 0}%
+                      </td>
+                      <td className={`px-3 py-2.5 text-right font-bold ${accentColor}`}>
+                        {BRL(c.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-secondary/50">
+                    <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Total
+                    </td>
+                    <td className="px-2 py-2.5 text-right text-xs text-muted-foreground">
+                      {filtered.length}
+                    </td>
+                    <td className="px-2 py-2.5" />
+                    <td className="px-3 py-2.5 text-right font-bold">{BRL(totalPeriodo)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : (
       <section className="mt-4 space-y-5 px-5">
         {loading ? (
           <SkeletonList n={5} />
