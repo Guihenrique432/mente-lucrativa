@@ -378,6 +378,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
           ))
         )}
       </section>
+      )}
 
       <button
         onClick={() => {
