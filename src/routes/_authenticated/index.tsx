@@ -252,6 +252,31 @@ function Dashboard() {
         <HealthCard status={stats.health} margem={stats.margem} />
       </section>
 
+      {dividaAnterior > 0 && (
+        <section className="mt-4 px-5">
+          <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-danger/15 text-danger">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-danger">
+                  Dívida de meses anteriores: {BRL(dividaAnterior)}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {stats.lucro > 0
+                    ? dividaAnterior - stats.lucro > 0
+                      ? `Com o lucro deste mês você já quitou ${BRL(Math.min(stats.lucro, dividaAnterior))}. Faltam ${BRL(dividaAnterior - stats.lucro)} para ficar no zero.`
+                      : "O lucro deste mês já cobre a dívida. Continue assim para virar o mês no positivo 🎉"
+                    : "Você fechou meses anteriores no vermelho. Vamos lembrar disso todo mês até ela ser quitada."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+
       {(stats.outOfStock.length > 0 || stats.lowStock.length > 0) && (
         <section className="mt-4 px-5">
           <Link
