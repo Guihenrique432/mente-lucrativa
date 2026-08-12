@@ -626,7 +626,7 @@ function LancamentoForm({
         valor: taxValor,
         categoria: "Imposto",
         data,
-        observacao: `Imposto ${taxRate}% sobre receita de ${BRL(v)}`,
+        observacao: `Imposto ${taxRate}% sobre receita de ${BRL(v)} (receita:${savedId})`,
         user_id: userId,
       });
       if (errImp) toast.warning("Receita salva, mas não consegui lançar o imposto");
