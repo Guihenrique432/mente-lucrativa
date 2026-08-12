@@ -549,9 +549,12 @@ function LancamentoForm({
 
   const [taxRate, setTaxRate] = useState<number>(() => {
     if (typeof window === "undefined") return 6;
-    const v = Number(localStorage.getItem(TAX_RATE_KEY));
-    return Number.isFinite(v) && v > 0 ? v : 6;
+    const raw = localStorage.getItem(TAX_RATE_KEY);
+    if (raw === null) return 6;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 6;
   });
+
   const [taxAuto, setTaxAuto] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem(TAX_AUTO_KEY) !== "0";
