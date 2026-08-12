@@ -137,7 +137,10 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
     if (tipo === "receita") {
       const savedId = (saved as { id: string } | null)?.id;
       const valorNum = Number(i.valor || 0);
-      let taxRate = Number(localStorage.getItem(TAX_RATE_KEY)) || 6;
+      const storedRate = localStorage.getItem(TAX_RATE_KEY);
+      const parsedRate = storedRate === null ? 6 : Number(storedRate);
+      let taxRate = Number.isFinite(parsedRate) && parsedRate >= 0 ? parsedRate : 6;
+
       let taxValor = +(valorNum * (taxRate / 100)).toFixed(2);
 
       // Busca o imposto original para repetir o mesmo valor/alíquota
@@ -549,9 +552,12 @@ function LancamentoForm({
 
   const [taxRate, setTaxRate] = useState<number>(() => {
     if (typeof window === "undefined") return 6;
-    const v = Number(localStorage.getItem(TAX_RATE_KEY));
-    return Number.isFinite(v) && v > 0 ? v : 6;
+    const raw = localStorage.getItem(TAX_RATE_KEY);
+    if (raw === null) return 6;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 6;
   });
+
   const [taxAuto, setTaxAuto] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem(TAX_AUTO_KEY) !== "0";

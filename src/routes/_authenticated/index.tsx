@@ -75,6 +75,8 @@ function Dashboard() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
+  const [dividaAnterior, setDividaAnterior] = useState<number>(0);
+
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -90,7 +92,7 @@ function Dashboard() {
     async function load() {
       const cur = monthRange();
       const prev = prevMonthRange();
-      const [r, d, rp, dp, p, m, mov] = await Promise.all([
+      const [r, d, rp, dp, p, m, mov, rAnt, dAnt] = await Promise.all([
         supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
@@ -98,6 +100,8 @@ function Dashboard() {
         supabase.from("produtos").select("id,nome,quantidade,custo,preco_venda"),
         supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("movimentacoes_estoque").select("produto_id,quantidade,tipo,data").eq("tipo", "saida").gte("data", cur.start).lte("data", cur.end + "T23:59:59"),
+        supabase.from("receitas").select("valor").lt("data", cur.start),
+        supabase.from("despesas").select("valor").lt("data", cur.start),
       ]);
       if (cancelled) return;
       setReceitas((r.data as Receita[]) ?? []);
@@ -107,7 +111,12 @@ function Dashboard() {
       setProdutos((p.data as Produto[]) ?? []);
       setSaidasMes(((mov.data as MovSaida[]) ?? []));
       setMeta(Number(m.data?.meta_lucro ?? 0));
+      const sumV = (xs: { valor: number }[] | null) =>
+        (xs ?? []).reduce((a, b) => a + Number(b.valor || 0), 0);
+      const saldoAnterior = sumV(rAnt.data as { valor: number }[]) - sumV(dAnt.data as { valor: number }[]);
+      setDividaAnterior(saldoAnterior < 0 ? Math.abs(saldoAnterior) : 0);
       setLoading(false);
+
     }
     load();
     return () => {
@@ -242,6 +251,31 @@ function Dashboard() {
       <section className="-mt-16 px-5">
         <HealthCard status={stats.health} margem={stats.margem} />
       </section>
+
+      {dividaAnterior > 0 && (
+        <section className="mt-4 px-5">
+          <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-danger/15 text-danger">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-danger">
+                  Dívida de meses anteriores: {BRL(dividaAnterior)}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {stats.lucro > 0
+                    ? dividaAnterior - stats.lucro > 0
+                      ? `Com o lucro deste mês você já quitou ${BRL(Math.min(stats.lucro, dividaAnterior))}. Faltam ${BRL(dividaAnterior - stats.lucro)} para ficar no zero.`
+                      : "O lucro deste mês já cobre a dívida. Continue assim para virar o mês no positivo 🎉"
+                    : "Você fechou meses anteriores no vermelho. Vamos lembrar disso todo mês até ela ser quitada."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
 
       {(stats.outOfStock.length > 0 || stats.lowStock.length > 0) && (
         <section className="mt-4 px-5">
