@@ -100,6 +100,20 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
     return Array.from(map.entries());
   }, [filtered]);
 
+  const porCategoria = useMemo(() => {
+    const map = new Map<string, { total: number; qtd: number }>();
+    for (const i of filtered) {
+      const key = i.categoria.trim() || "Sem categoria";
+      const cur = map.get(key) ?? { total: 0, qtd: 0 };
+      cur.total += Number(i.valor || 0);
+      cur.qtd += 1;
+      map.set(key, cur);
+    }
+    return Array.from(map.entries())
+      .map(([categoria, v]) => ({ categoria, ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
   async function handleDuplicate(i: Lancamento) {
     const { data: u } = await supabase.auth.getUser();
     const userId = u.user?.id;
