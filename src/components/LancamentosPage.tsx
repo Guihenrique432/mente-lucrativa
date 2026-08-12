@@ -386,7 +386,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
           setShowForm(true);
         }}
         aria-label="Adicionar"
-        className="fixed bottom-24 right-5 z-30 grid h-14 w-14 place-items-center rounded-full text-primary-foreground"
+        className="fixed bottom-24 left-5 z-30 grid h-14 w-14 place-items-center rounded-full text-primary-foreground"
         style={{ background: accentVar, boxShadow: "var(--shadow-pop)" }}
       >
         <Plus className="h-6 w-6" />
