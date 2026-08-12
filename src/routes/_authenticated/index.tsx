@@ -92,7 +92,7 @@ function Dashboard() {
     async function load() {
       const cur = monthRange();
       const prev = prevMonthRange();
-      const [r, d, rp, dp, p, m, mov] = await Promise.all([
+      const [r, d, rp, dp, p, m, mov, rAnt, dAnt] = await Promise.all([
         supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
@@ -100,6 +100,8 @@ function Dashboard() {
         supabase.from("produtos").select("id,nome,quantidade,custo,preco_venda"),
         supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("movimentacoes_estoque").select("produto_id,quantidade,tipo,data").eq("tipo", "saida").gte("data", cur.start).lte("data", cur.end + "T23:59:59"),
+        supabase.from("receitas").select("valor").lt("data", cur.start),
+        supabase.from("despesas").select("valor").lt("data", cur.start),
       ]);
       if (cancelled) return;
       setReceitas((r.data as Receita[]) ?? []);
@@ -109,7 +111,12 @@ function Dashboard() {
       setProdutos((p.data as Produto[]) ?? []);
       setSaidasMes(((mov.data as MovSaida[]) ?? []));
       setMeta(Number(m.data?.meta_lucro ?? 0));
+      const sumV = (xs: { valor: number }[] | null) =>
+        (xs ?? []).reduce((a, b) => a + Number(b.valor || 0), 0);
+      const saldoAnterior = sumV(rAnt.data as { valor: number }[]) - sumV(dAnt.data as { valor: number }[]);
+      setDividaAnterior(saldoAnterior < 0 ? Math.abs(saldoAnterior) : 0);
       setLoading(false);
+
     }
     load();
     return () => {
