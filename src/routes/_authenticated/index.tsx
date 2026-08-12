@@ -75,6 +75,8 @@ function Dashboard() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
+  const [dividaAnterior, setDividaAnterior] = useState<number>(0);
+
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
