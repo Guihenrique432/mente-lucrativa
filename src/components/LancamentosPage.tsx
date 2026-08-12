@@ -120,14 +120,54 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
     if (!userId) return toast.error("Sessão expirada");
     const today = new Date();
     const dataHoje = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const { error } = await supabase.from(table).insert({
-      valor: i.valor,
-      categoria: i.categoria,
-      observacao: i.observacao,
-      data: dataHoje,
-      user_id: userId,
-    });
+    const { data: saved, error } = await supabase
+      .from(table)
+      .insert({
+        valor: i.valor,
+        categoria: i.categoria,
+        observacao: i.observacao,
+        data: dataHoje,
+        user_id: userId,
+      })
+      .select("id")
+      .single();
     if (error) return toast.error("Erro ao duplicar");
+
+    // Se for receita, duplica também o imposto vinculado
+    if (tipo === "receita") {
+      const savedId = (saved as { id: string } | null)?.id;
+      const valorNum = Number(i.valor || 0);
+      let taxRate = Number(localStorage.getItem(TAX_RATE_KEY)) || 6;
+      let taxValor = +(valorNum * (taxRate / 100)).toFixed(2);
+
+      // Busca o imposto original para repetir o mesmo valor/alíquota
+      const { data: taxExpenses } = await supabase
+        .from("despesas")
+        .select("id, valor, observacao")
+        .eq("user_id", userId)
+        .eq("categoria", "Imposto")
+        .or(`observacao.ilike.%receita:${i.id}%,observacao.ilike.%sobre receita de ${BRL(valorNum)}%`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (taxExpenses && taxExpenses.length > 0) {
+        taxValor = Number(taxExpenses[0].valor || 0);
+        const rateMatch = taxExpenses[0].observacao.match(/Imposto\s+(\d+(?:[,.]\d+)?)%/);
+        if (rateMatch) taxRate = Number(rateMatch[1].replace(",", "."));
+      }
+
+      if (taxValor > 0) {
+        const { error: errImp } = await supabase.from("despesas").insert({
+          valor: taxValor,
+          categoria: "Imposto",
+          data: dataHoje,
+          observacao: `Imposto ${taxRate}% sobre receita de ${BRL(valorNum)}${savedId ? ` (receita:${savedId})` : ""}`,
+          user_id: userId,
+        });
+        if (errImp) toast.warning("Duplicado, mas não consegui lançar o imposto");
+      }
+    }
+
     toast.success("Duplicado para hoje");
     load();
   }
