@@ -152,7 +152,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
 
       if (taxExpenses && taxExpenses.length > 0) {
         taxValor = Number(taxExpenses[0].valor || 0);
-        const rateMatch = taxExpenses[0].observacao.match(/Imposto\s+(\d+(?:[,.]\d+)?)%/);
+        const rateMatch = taxExpenses[0].observacao?.match(/Imposto\s+(\d+(?:[,.]\d+)?)%/);
         if (rateMatch) taxRate = Number(rateMatch[1].replace(",", "."));
       }
 
