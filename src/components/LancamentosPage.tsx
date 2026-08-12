@@ -55,6 +55,7 @@ export function LancamentosPage({ tipo }: { tipo: Tipo }) {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [vista, setVista] = useState<"lista" | "tabela">("lista");
 
   async function load() {
     setLoading(true);
