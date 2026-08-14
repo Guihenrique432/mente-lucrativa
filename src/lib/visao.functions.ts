@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const InputSchema = z.object({
   valor: z.number().min(0).max(100_000_000),
   forma: z.enum(["avista", "parcelado"]),
-  parcelas: z.number().int().min(1).max(48),
+  parcelas: z.number().int().min(1).max(420),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   finalidade: z.string().max(200).optional(),
 });
