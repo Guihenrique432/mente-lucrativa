@@ -61,7 +61,7 @@ function VisaoPage() {
         data: {
           valor: v,
           forma,
-          parcelas: forma === "parcelado" ? Math.max(1, Number(parcelas) || 1) : 1,
+          parcelas: forma === "parcelado" ? Math.min(48, Math.max(1, Number(parcelas) || 1)) : 1,
           data,
           finalidade: finalidade.trim() || undefined,
         },
