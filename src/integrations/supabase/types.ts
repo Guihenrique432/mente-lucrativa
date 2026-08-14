@@ -89,36 +89,45 @@ export type Database = {
           created_by: string
           expires_at: string | null
           id: string
+          kind: string
           label: string | null
           status: Database["public"]["Enums"]["invite_status"]
           token_hash: string
           token_hint: string
+          token_plain: string | null
           used_at: string | null
           used_by: string | null
+          uses: number
         }
         Insert: {
           created_at?: string
           created_by: string
           expires_at?: string | null
           id?: string
+          kind?: string
           label?: string | null
           status?: Database["public"]["Enums"]["invite_status"]
           token_hash: string
           token_hint?: string
+          token_plain?: string | null
           used_at?: string | null
           used_by?: string | null
+          uses?: number
         }
         Update: {
           created_at?: string
           created_by?: string
           expires_at?: string | null
           id?: string
+          kind?: string
           label?: string | null
           status?: Database["public"]["Enums"]["invite_status"]
           token_hash?: string
           token_hint?: string
+          token_plain?: string | null
           used_at?: string | null
           used_by?: string | null
+          uses?: number
         }
         Relationships: []
       }
