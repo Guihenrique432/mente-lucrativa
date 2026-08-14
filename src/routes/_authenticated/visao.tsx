@@ -138,13 +138,21 @@ function VisaoPage() {
 
           {forma === "parcelado" && (
             <label className="block">
-              <span className="text-xs text-muted-foreground">Número de parcelas</span>
+              <span className="text-xs text-muted-foreground">Número de parcelas (1 a 48)</span>
               <input
                 inputMode="numeric"
                 value={parcelas}
-                onChange={(e) => setParcelas(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  const n = e.target.value.replace(/\D/g, "").slice(0, 2);
+                  setParcelas(n);
+                }}
+                onBlur={() => {
+                  const n = Math.min(48, Math.max(1, Number(parcelas) || 1));
+                  setParcelas(String(n));
+                }}
                 className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
               />
+
             </label>
           )}
 
