@@ -353,6 +353,25 @@ function Dashboard() {
 
       <section className="mt-3 px-5">
         <Link
+          to="/visao"
+          className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Visão Financeira</p>
+              <p className="text-xs text-muted-foreground">Simule uma compra e veja o impacto futuro</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-accent">Simular →</span>
+        </Link>
+      </section>
+
+
+      <section className="mt-3 px-5">
+        <Link
           to="/planos"
           className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40"
         >
