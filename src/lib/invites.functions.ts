@@ -215,7 +215,7 @@ export const signupWithInvite = createServerFn({ method: "POST" })
 
     const { data: row } = await supabaseAdmin
       .from("invitations")
-      .select("id, status, expires_at")
+      .select("id, status, expires_at, kind, uses")
       .eq("token_hash", token_hash)
       .maybeSingle();
 
@@ -227,16 +227,20 @@ export const signupWithInvite = createServerFn({ method: "POST" })
       return { ok: false as const, error: "invalid" as const };
     }
 
-    // Atomic claim — only one request can flip pending -> used.
-    const { data: claimed } = await supabaseAdmin
-      .from("invitations")
-      .update({ status: "used", used_at: nowIso })
-      .eq("id", row.id)
-      .eq("status", "pending")
-      .select("id");
+    const rotating = row.kind === "rotating";
 
-    if (!claimed || claimed.length === 0) {
-      return { ok: false as const, error: "invalid" as const };
+    if (!rotating) {
+      // Atomic claim — only one request can flip pending -> used.
+      const { data: claimed } = await supabaseAdmin
+        .from("invitations")
+        .update({ status: "used", used_at: nowIso })
+        .eq("id", row.id)
+        .eq("status", "pending")
+        .select("id");
+
+      if (!claimed || claimed.length === 0) {
+        return { ok: false as const, error: "invalid" as const };
+      }
     }
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -247,11 +251,13 @@ export const signupWithInvite = createServerFn({ method: "POST" })
     });
 
     if (createErr || !created?.user) {
-      // release the invite again
-      await supabaseAdmin
-        .from("invitations")
-        .update({ status: "pending", used_at: null })
-        .eq("id", row.id);
+      if (!rotating) {
+        // release the invite again
+        await supabaseAdmin
+          .from("invitations")
+          .update({ status: "pending", used_at: null })
+          .eq("id", row.id);
+      }
       const msg = createErr?.message ?? "";
       return {
         ok: false as const,
@@ -261,8 +267,13 @@ export const signupWithInvite = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("invitations")
-      .update({ used_by: created.user.id })
+      .update(
+        rotating
+          ? { uses: (row.uses ?? 0) + 1, used_at: nowIso }
+          : { used_by: created.user.id },
+      )
       .eq("id", row.id);
+
 
     return { ok: true as const };
   });
