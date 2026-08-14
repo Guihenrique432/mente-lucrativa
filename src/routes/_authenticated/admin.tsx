@@ -19,6 +19,8 @@ import {
   X,
   Link2,
   RefreshCw,
+  Share2,
+  MessageCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -51,6 +53,10 @@ function restante(ms: number) {
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+}
+
+function mensagem(link: string) {
+  return `Oi! Te liberei acesso ao Lucro Real, o app pra você enxergar seu lucro de verdade.\n\nCrie sua conta por aqui (o link vale 12 horas):\n${link}`;
 }
 
 function fmt(d: string | null) {
@@ -219,25 +225,72 @@ function AdminPage() {
                   Expira em {restante(rot.expiraEm - agora)}
                 </p>
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(rot.link);
                     toast.success("Link copiado!");
                   }}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-semibold text-primary-foreground"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-semibold text-primary-foreground"
                   style={{ background: "var(--gradient-hero)" }}
                 >
-                  <Copy className="h-4 w-4" /> Copiar link
+                  <Copy className="h-4 w-4" /> Copiar
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(mensagem(rot.link))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-success/40 bg-success/10 px-4 py-3 text-sm font-semibold text-success"
+                >
+                  <MessageCircle className="h-4 w-4" /> WhatsApp
+                </a>
+                <button
+                  onClick={async () => {
+                    const texto = mensagem(rot.link);
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: "Acesso ao Lucro Real", text: texto });
+                        return;
+                      } catch {
+                        return;
+                      }
+                    }
+                    navigator.clipboard.writeText(texto);
+                    toast.success("Convite copiado!");
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground"
+                >
+                  <Share2 className="h-4 w-4" /> Compartilhar
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(mensagem(rot.link));
+                    toast.success("Mensagem pronta copiada!");
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground"
+                >
+                  <Copy className="h-4 w-4" /> Copiar convite
                 </button>
                 <button
                   onClick={carregarRotativo}
                   disabled={rotLoading}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+                  className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground disabled:opacity-60"
                 >
-                  <RefreshCw className={`h-4 w-4 ${rotLoading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-3.5 w-3.5 ${rotLoading ? "animate-spin" : ""}`} /> Gerar
+                  outro link
                 </button>
               </div>
+              <div className="mt-3 flex justify-center rounded-2xl border border-border bg-background p-3">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(rot.link)}`}
+                  alt="QR Code do link de acesso ao Lucro Real"
+                  width={180}
+                  height={180}
+                  loading="lazy"
+                  className="rounded-xl"
+                />
+              </div>
+
             </>
           ) : (
             <button
