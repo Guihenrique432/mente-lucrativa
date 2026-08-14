@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as Auth2faRouteImport } from './routes/auth.2fa'
+import { Route as AuthenticatedVisaoRouteImport } from './routes/_authenticated/visao'
 import { Route as AuthenticatedSofiaRouteImport } from './routes/_authenticated/sofia'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedReceitasRouteImport } from './routes/_authenticated/receitas'
@@ -66,6 +67,11 @@ const Auth2faRoute = Auth2faRouteImport.update({
   id: '/2fa',
   path: '/2fa',
   getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedVisaoRoute = AuthenticatedVisaoRouteImport.update({
+  id: '/visao',
+  path: '/visao',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSofiaRoute = AuthenticatedSofiaRouteImport.update({
   id: '/sofia',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
+  '/visao': typeof AuthenticatedVisaoRoute
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
 }
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
+  '/visao': typeof AuthenticatedVisaoRoute
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/': typeof AuthenticatedIndexRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/_authenticated/receitas': typeof AuthenticatedReceitasRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/sofia': typeof AuthenticatedSofiaRoute
+  '/_authenticated/visao': typeof AuthenticatedVisaoRoute
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/receitas'
     | '/relatorios'
     | '/sofia'
+    | '/visao'
     | '/auth/2fa'
     | '/convite/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/receitas'
     | '/relatorios'
     | '/sofia'
+    | '/visao'
     | '/auth/2fa'
     | '/convite/$token'
     | '/'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/receitas'
     | '/_authenticated/relatorios'
     | '/_authenticated/sofia'
+    | '/_authenticated/visao'
     | '/auth/2fa'
     | '/convite/$token'
     | '/_authenticated/'
@@ -304,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/2fa'
       preLoaderRoute: typeof Auth2faRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/visao': {
+      id: '/_authenticated/visao'
+      path: '/visao'
+      fullPath: '/visao'
+      preLoaderRoute: typeof AuthenticatedVisaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sofia': {
       id: '/_authenticated/sofia'
@@ -389,6 +408,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReceitasRoute: typeof AuthenticatedReceitasRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedSofiaRoute: typeof AuthenticatedSofiaRoute
+  AuthenticatedVisaoRoute: typeof AuthenticatedVisaoRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -403,6 +423,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReceitasRoute: AuthenticatedReceitasRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedSofiaRoute: AuthenticatedSofiaRoute,
+  AuthenticatedVisaoRoute: AuthenticatedVisaoRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
