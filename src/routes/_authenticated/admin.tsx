@@ -6,6 +6,7 @@ import {
   listInvites,
   createInvite,
   revokeInvite,
+  getRotatingInvite,
 } from "@/lib/invites.functions";
 import { BottomNav } from "@/components/BottomNav";
 import {
@@ -16,6 +17,8 @@ import {
   ShieldAlert,
   Ticket,
   X,
+  Link2,
+  RefreshCw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -42,6 +45,14 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   revoked: { text: "Revogado", cls: "bg-danger/15 text-danger" },
 };
 
+function restante(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+}
+
 function fmt(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("pt-BR");
@@ -54,6 +65,24 @@ function AdminPage() {
   const [creating, setCreating] = useState(false);
   const [dias, setDias] = useState<string>("30");
   const [novoLink, setNovoLink] = useState<string | null>(null);
+  const [rot, setRot] = useState<{ link: string; expiraEm: number } | null>(null);
+  const [rotLoading, setRotLoading] = useState(true);
+  const [agora, setAgora] = useState(() => Date.now());
+
+  const carregarRotativo = useCallback(async () => {
+    setRotLoading(true);
+    try {
+      const r = await getRotatingInvite();
+      setRot({
+        link: `${window.location.origin}/convite/${r.token}`,
+        expiraEm: r.expires_at ? new Date(r.expires_at).getTime() : Date.now(),
+      });
+    } catch {
+      setRot(null);
+    } finally {
+      setRotLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,14 +100,28 @@ function AdminPage() {
     amIAdmin()
       .then((r) => {
         setAllowed(r.admin);
-        if (r.admin) load();
+        if (r.admin) {
+          load();
+          carregarRotativo();
+        }
         else setLoading(false);
       })
       .catch(() => {
         setAllowed(false);
         setLoading(false);
       });
-  }, [load]);
+  }, [load, carregarRotativo]);
+
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (rot && agora >= rot.expiraEm && !rotLoading) {
+      carregarRotativo();
+    }
+  }, [agora, rot, rotLoading, carregarRotativo]);
 
   async function handleCreate() {
     setCreating(true);
@@ -151,6 +194,61 @@ function AdminPage() {
       </div>
 
       <main className="relative z-10 -mt-12 space-y-4 px-5">
+        <section
+          className="rounded-2xl border border-border bg-card p-5"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-accent" />
+            <p className="text-sm font-bold text-foreground">Link de acesso (12 horas)</p>
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Compartilhe este link: ele libera a entrada no app e vale 12 horas. Quando o prazo
+            acaba, um link novo é gerado automaticamente, também com 12 horas.
+          </p>
+
+          {rotLoading && !rot ? (
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Gerando link...
+            </div>
+          ) : rot ? (
+            <>
+              <div className="mt-3 rounded-2xl border border-accent/25 bg-accent/5 p-3">
+                <p className="break-all text-xs text-foreground">{rot.link}</p>
+                <p className="mt-2 text-[11px] font-semibold text-accent">
+                  Expira em {restante(rot.expiraEm - agora)}
+                </p>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(rot.link);
+                    toast.success("Link copiado!");
+                  }}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-4 py-3 text-sm font-semibold text-primary-foreground"
+                  style={{ background: "var(--gradient-hero)" }}
+                >
+                  <Copy className="h-4 w-4" /> Copiar link
+                </button>
+                <button
+                  onClick={carregarRotativo}
+                  disabled={rotLoading}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${rotLoading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={carregarRotativo}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground"
+            >
+              <RefreshCw className="h-4 w-4" /> Tentar novamente
+            </button>
+          )}
+        </section>
+
         <section
           className="rounded-2xl border border-border bg-card p-5"
           style={{ boxShadow: "var(--shadow-card)" }}
