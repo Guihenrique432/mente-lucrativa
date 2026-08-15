@@ -813,6 +813,63 @@ function MovimentacoesSheet({
               className="col-span-2 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
             />
           </div>
+
+          {tipo === "saida" && (
+            <div className="mt-3 rounded-2xl border border-border bg-secondary/40 p-3">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={lancarVenda}
+                  onChange={(e) => setLancarVenda(e.target.checked)}
+                  className="h-4 w-4 accent-current"
+                />
+                Lançar faturamento desta saída
+              </label>
+              {lancarVenda && (
+                <>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Imposto declarado</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        inputMode="decimal"
+                        value={String(taxRate)}
+                        onChange={(e) => {
+                          const n = Number(e.target.value.replace(",", "."));
+                          if (Number.isFinite(n) && n >= 0 && n <= 100) {
+                            setTaxRate(n);
+                            try {
+                              localStorage.setItem("lr_tax_rate", String(n));
+                            } catch {}
+                          }
+                        }}
+                        className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-accent"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Faturamento</p>
+                      <p className="mt-0.5 font-bold">{BRL(faturamento)}</p>
+                    </div>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Imposto</p>
+                      <p className="mt-0.5 font-bold text-danger">{BRL(impostoValor)}</p>
+                    </div>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Líquido</p>
+                      <p className="mt-0.5 font-bold text-success">{BRL(liquidoVenda)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {qtdNum} un. × {BRL(Number(produto.preco_venda || 0))} · com 0% nenhuma despesa
+                    de imposto é criada.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={saving}
