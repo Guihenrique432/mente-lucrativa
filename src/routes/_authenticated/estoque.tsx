@@ -574,6 +574,19 @@ function MovimentacoesSheet({
   const [obs, setObs] = useState("");
   const [saving, setSaving] = useState(false);
   const [saldoAtual, setSaldoAtual] = useState<number>(produto.quantidade);
+  const [lancarVenda, setLancarVenda] = useState(true);
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 6;
+    const raw = localStorage.getItem("lr_tax_rate");
+    if (raw === null) return 6;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 6;
+  });
+  const qtdNum = Math.max(0, Math.floor(Number(qt) || 0));
+  const faturamento = +(qtdNum * Number(produto.preco_venda || 0)).toFixed(2);
+  const impostoValor = +(faturamento * (taxRate / 100)).toFixed(2);
+  const liquidoVenda = +(faturamento - impostoValor).toFixed(2);
+
 
   async function load() {
     setLoading(true);
