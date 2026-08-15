@@ -574,6 +574,19 @@ function MovimentacoesSheet({
   const [obs, setObs] = useState("");
   const [saving, setSaving] = useState(false);
   const [saldoAtual, setSaldoAtual] = useState<number>(produto.quantidade);
+  const [lancarVenda, setLancarVenda] = useState(true);
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 6;
+    const raw = localStorage.getItem("lr_tax_rate");
+    if (raw === null) return 6;
+    const v = Number(raw);
+    return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 6;
+  });
+  const qtdNum = Math.max(0, Math.floor(Number(qt) || 0));
+  const faturamento = +(qtdNum * Number(produto.preco_venda || 0)).toFixed(2);
+  const impostoValor = +(faturamento * (taxRate / 100)).toFixed(2);
+  const liquidoVenda = +(faturamento - impostoValor).toFixed(2);
+
 
   async function load() {
     setLoading(true);
@@ -627,19 +640,61 @@ function MovimentacoesSheet({
       setSaving(false);
       return;
     }
+
+    const gerarVenda = tipo === "saida" && lancarVenda && faturamento > 0;
+    let receitaId: string | null = null;
+
+    if (gerarVenda) {
+      const { data: rec, error: errRec } = await supabase
+        .from("receitas")
+        .insert({
+          user_id: user.id,
+          valor: faturamento,
+          categoria: "Venda",
+          observacao: `Venda: ${quantidade}× ${produto.nome}`,
+        })
+        .select("id")
+        .single();
+      if (errRec) {
+        toast.error("Erro ao lançar o faturamento da venda");
+        setSaving(false);
+        return;
+      }
+      receitaId = (rec as { id: string }).id;
+
+      if (impostoValor > 0) {
+        const { error: errImp } = await supabase.from("despesas").insert({
+          user_id: user.id,
+          valor: impostoValor,
+          categoria: "Imposto",
+          observacao: `Imposto ${taxRate}% sobre receita de ${BRL(faturamento)} (receita:${receitaId})`,
+        });
+        if (errImp) toast.warning("Venda lançada, mas não consegui lançar o imposto");
+      }
+    }
+
+    const obsBase = obs.trim() ? obs.trim().slice(0, 200) : "";
     const { error } = await supabase.from("movimentacoes_estoque").insert({
       user_id: user.id,
       produto_id: produto.id,
       tipo,
       quantidade,
-      observacao: obs.trim() ? obs.trim().slice(0, 240) : null,
+      observacao: receitaId
+        ? `${obsBase ? obsBase + " · " : ""}Venda receita:${receitaId}`
+        : obsBase || null,
     });
     if (error) {
       toast.error("Erro ao registrar movimentação");
       setSaving(false);
       return;
     }
-    toast.success(tipo === "entrada" ? "Entrada registrada" : "Saída registrada");
+    toast.success(
+      gerarVenda
+        ? `Saída + faturamento de ${BRL(faturamento)}${impostoValor > 0 ? ` e imposto de ${BRL(impostoValor)}` : ""} lançados`
+        : tipo === "entrada"
+          ? "Entrada registrada"
+          : "Saída registrada",
+    );
     setQt("1");
     setObs("");
     setSaving(false);
@@ -649,16 +704,30 @@ function MovimentacoesSheet({
 
   async function handleRemove(m: Movimentacao) {
     const label = m.tipo === "entrada" ? "entrada" : "saída";
-    if (!confirm(`Excluir ${label} de ${m.quantidade} un. do produto "${produto.nome}"?`)) return;
+    const recMatch = m.observacao?.match(/receita:([0-9a-f-]{36})/i);
+    if (
+      !confirm(
+        `Excluir ${label} de ${m.quantidade} un. do produto "${produto.nome}"?${
+          recMatch ? "\nO faturamento e o imposto lançados também serão removidos." : ""
+        }`,
+      )
+    )
+      return;
     const { error } = await supabase.from("movimentacoes_estoque").delete().eq("id", m.id);
     if (error) {
       toast.error("Erro ao excluir");
       return;
     }
-    toast.success("Movimentação excluída");
+    if (recMatch) {
+      const rid = recMatch[1];
+      await supabase.from("despesas").delete().eq("categoria", "Imposto").like("observacao", `%receita:${rid}%`);
+      await supabase.from("receitas").delete().eq("id", rid);
+    }
+    toast.success(recMatch ? "Movimentação, faturamento e imposto excluídos" : "Movimentação excluída");
     await load();
     onChanged();
   }
+
 
   return (
     <div
@@ -744,6 +813,63 @@ function MovimentacoesSheet({
               className="col-span-2 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
             />
           </div>
+
+          {tipo === "saida" && (
+            <div className="mt-3 rounded-2xl border border-border bg-secondary/40 p-3">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={lancarVenda}
+                  onChange={(e) => setLancarVenda(e.target.checked)}
+                  className="h-4 w-4 accent-current"
+                />
+                Lançar faturamento desta saída
+              </label>
+              {lancarVenda && (
+                <>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Imposto declarado</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        inputMode="decimal"
+                        value={String(taxRate)}
+                        onChange={(e) => {
+                          const n = Number(e.target.value.replace(",", "."));
+                          if (Number.isFinite(n) && n >= 0 && n <= 100) {
+                            setTaxRate(n);
+                            try {
+                              localStorage.setItem("lr_tax_rate", String(n));
+                            } catch {}
+                          }
+                        }}
+                        className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs outline-none focus:border-accent"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Faturamento</p>
+                      <p className="mt-0.5 font-bold">{BRL(faturamento)}</p>
+                    </div>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Imposto</p>
+                      <p className="mt-0.5 font-bold text-danger">{BRL(impostoValor)}</p>
+                    </div>
+                    <div className="rounded-lg bg-card p-2">
+                      <p className="text-[10px] uppercase text-muted-foreground">Líquido</p>
+                      <p className="mt-0.5 font-bold text-success">{BRL(liquidoVenda)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {qtdNum} un. × {BRL(Number(produto.preco_venda || 0))} · com 0% nenhuma despesa
+                    de imposto é criada.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={saving}
