@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
+import { ArrowLeft, User, Mail, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
@@ -13,9 +13,9 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
       { title: "Perfil — Lucro Real" },
-      { name: "description", content: "Gerencie seus dados de conta e assinatura." },
+      { name: "description", content: "Gerencie seus dados de conta." },
       { property: "og:title", content: "Perfil — Lucro Real" },
-      { property: "og:description", content: "Gerencie seus dados de conta e assinatura." },
+      { property: "og:description", content: "Gerencie seus dados de conta." },
       { property: "og:url", content: "https://mente-lucrativa.lovable.app/perfil" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -25,18 +25,10 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
 });
 
-const PLANOS: Record<string, { nome: string; cor: string }> = {
-  gratuito: { nome: "Gratuito", cor: "bg-slate-500" },
-  start: { nome: "Core", cor: "bg-slate-600" },
-  pro: { nome: "Plus", cor: "bg-blue-600" },
-  business: { nome: "Prime", cor: "bg-amber-500" },
-};
-
 function PerfilPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
-  const [plano, setPlano] = useState("gratuito");
   const [initialNome, setInitialNome] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,8 +36,6 @@ function PerfilPage() {
   const [mfaLoading, setMfaLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
   const [userId, setUserId] = useState("");
-  const [assinatura, setAssinatura] = useState<Assinatura | null>(null);
-  const [assinaturaBusy, setAssinaturaBusy] = useState(false);
 
   async function refreshMfa() {
     const { data } = await supabase.auth.mfa.listFactors();
@@ -66,45 +56,12 @@ function PerfilPage() {
         .maybeSingle();
       setNome(prof?.nome ?? "");
       setInitialNome(prof?.nome ?? "");
-      const assin = await carregarAssinatura(userData.user.id);
-      setAssinatura(assin);
-      setPlano(assin?.plano ?? "gratuito");
       setLoading(false);
       refreshMfa();
     }
     load();
   }, []);
 
-  async function handleCancelar() {
-    if (!confirm("Cancelar a renovação automática da sua assinatura?")) return;
-    setAssinaturaBusy(true);
-    try {
-      const atualizada = await cancelarAssinatura(userId);
-      if (atualizada) {
-        setAssinatura(atualizada);
-        setPlano(atualizada.plano);
-      }
-      toast.success("Assinatura cancelada. Você mantém os benefícios até o fim do período.");
-    } catch {
-      toast.error("Não foi possível cancelar agora.");
-    }
-    setAssinaturaBusy(false);
-  }
-
-  async function handleReativar() {
-    setAssinaturaBusy(true);
-    try {
-      const atualizada = await reativarAssinatura(userId);
-      if (atualizada) {
-        setAssinatura(atualizada);
-        setPlano(atualizada.plano);
-      }
-      toast.success("Renovação automática reativada!");
-    } catch {
-      toast.error("Não foi possível reativar agora.");
-    }
-    setAssinaturaBusy(false);
-  }
 
 
   async function handleDisableMfa() {
@@ -151,7 +108,6 @@ function PerfilPage() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const planoInfo = PLANOS[plano] ?? PLANOS.gratuito;
   const dirty = nome.trim() !== initialNome && nome.trim().length >= 2;
 
   return (
