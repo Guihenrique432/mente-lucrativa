@@ -20,7 +20,6 @@ import {
   Plus,
   Boxes,
   CheckCircle2,
-  Crown,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
