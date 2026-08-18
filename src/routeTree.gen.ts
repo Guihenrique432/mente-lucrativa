@@ -27,6 +27,7 @@ import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authentica
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicHooksNotificacaoDiariaRouteImport } from './routes/api/public/hooks/notificacao-diaria'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -117,6 +118,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicHooksNotificacaoDiariaRoute =
+  ApiPublicHooksNotificacaoDiariaRouteImport.update({
+    id: '/api/public/hooks/notificacao-diaria',
+    path: '/api/public/hooks/notificacao-diaria',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/visao': typeof AuthenticatedVisaoRoute
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/api/public/hooks/notificacao-diaria': typeof ApiPublicHooksNotificacaoDiariaRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
@@ -155,6 +163,7 @@ export interface FileRoutesByTo {
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/hooks/notificacao-diaria': typeof ApiPublicHooksNotificacaoDiariaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,6 +185,7 @@ export interface FileRoutesById {
   '/auth/2fa': typeof Auth2faRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/hooks/notificacao-diaria': typeof ApiPublicHooksNotificacaoDiariaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/visao'
     | '/auth/2fa'
     | '/convite/$token'
+    | '/api/public/hooks/notificacao-diaria'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/auth/2fa'
     | '/convite/$token'
     | '/'
+    | '/api/public/hooks/notificacao-diaria'
   id:
     | '__root__'
     | '/_authenticated'
@@ -236,6 +248,7 @@ export interface FileRouteTypes {
     | '/auth/2fa'
     | '/convite/$token'
     | '/_authenticated/'
+    | '/api/public/hooks/notificacao-diaria'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -245,6 +258,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  ApiPublicHooksNotificacaoDiariaRoute: typeof ApiPublicHooksNotificacaoDiariaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -375,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/notificacao-diaria': {
+      id: '/api/public/hooks/notificacao-diaria'
+      path: '/api/public/hooks/notificacao-diaria'
+      fullPath: '/api/public/hooks/notificacao-diaria'
+      preLoaderRoute: typeof ApiPublicHooksNotificacaoDiariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -426,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  ApiPublicHooksNotificacaoDiariaRoute: ApiPublicHooksNotificacaoDiariaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
