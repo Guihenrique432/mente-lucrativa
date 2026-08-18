@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Mail, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { NotificacoesCard } from "@/components/NotificacoesCard";
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
 
@@ -138,6 +139,10 @@ function PerfilPage() {
       </header>
 
       <main className="mx-auto -mt-10 max-w-md space-y-4 px-4">
+
+        <NotificacoesCard />
+
+
 
 
         <Link

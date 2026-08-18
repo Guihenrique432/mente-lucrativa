@@ -196,6 +196,57 @@ export type Database = {
           },
         ]
       }
+      notificacao_execucoes: {
+        Row: {
+          data: string
+          detalhe: string | null
+          finalizado_em: string | null
+          iniciado_em: string
+          status: string
+        }
+        Insert: {
+          data: string
+          detalhe?: string | null
+          finalizado_em?: string | null
+          iniciado_em?: string
+          status?: string
+        }
+        Update: {
+          data?: string
+          detalhe?: string | null
+          finalizado_em?: string | null
+          iniciado_em?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      notificacoes_diarias: {
+        Row: {
+          canal: string
+          created_at: string
+          data: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          canal: string
+          created_at?: string
+          data: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          data?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           created_at: string
@@ -265,6 +316,33 @@ export type Database = {
           plano_renova_automaticamente?: boolean
           plano_status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
         }
         Relationships: []
       }

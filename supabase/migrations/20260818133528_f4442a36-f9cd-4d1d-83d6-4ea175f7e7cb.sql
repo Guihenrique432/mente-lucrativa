@@ -1,0 +1,1 @@
+CREATE POLICY "notificacao_execucoes: no client access" ON public.notificacao_execucoes FOR SELECT TO authenticated USING (false);
