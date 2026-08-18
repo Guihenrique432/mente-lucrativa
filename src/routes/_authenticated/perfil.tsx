@@ -1,20 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, User, Mail, Crown, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
+import { ArrowLeft, User, Mail, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
 
-import {
-  carregarAssinatura,
-  cancelarAssinatura,
-  reativarAssinatura,
-  diasRestantes,
-  formatarData,
-  STATUS_INFO,
-  type Assinatura,
-} from "@/lib/assinatura";
 
 
 
@@ -22,9 +13,9 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
     meta: [
       { title: "Perfil — Lucro Real" },
-      { name: "description", content: "Gerencie seus dados de conta e assinatura." },
+      { name: "description", content: "Gerencie seus dados de conta." },
       { property: "og:title", content: "Perfil — Lucro Real" },
-      { property: "og:description", content: "Gerencie seus dados de conta e assinatura." },
+      { property: "og:description", content: "Gerencie seus dados de conta." },
       { property: "og:url", content: "https://mente-lucrativa.lovable.app/perfil" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -34,18 +25,10 @@ export const Route = createFileRoute("/_authenticated/perfil")({
   component: PerfilPage,
 });
 
-const PLANOS: Record<string, { nome: string; cor: string }> = {
-  gratuito: { nome: "Gratuito", cor: "bg-slate-500" },
-  start: { nome: "Core", cor: "bg-slate-600" },
-  pro: { nome: "Plus", cor: "bg-blue-600" },
-  business: { nome: "Prime", cor: "bg-amber-500" },
-};
-
 function PerfilPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
-  const [plano, setPlano] = useState("gratuito");
   const [initialNome, setInitialNome] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,8 +36,6 @@ function PerfilPage() {
   const [mfaLoading, setMfaLoading] = useState(true);
   const [showEnroll, setShowEnroll] = useState(false);
   const [userId, setUserId] = useState("");
-  const [assinatura, setAssinatura] = useState<Assinatura | null>(null);
-  const [assinaturaBusy, setAssinaturaBusy] = useState(false);
 
   async function refreshMfa() {
     const { data } = await supabase.auth.mfa.listFactors();
@@ -75,45 +56,12 @@ function PerfilPage() {
         .maybeSingle();
       setNome(prof?.nome ?? "");
       setInitialNome(prof?.nome ?? "");
-      const assin = await carregarAssinatura(userData.user.id);
-      setAssinatura(assin);
-      setPlano(assin?.plano ?? "gratuito");
       setLoading(false);
       refreshMfa();
     }
     load();
   }, []);
 
-  async function handleCancelar() {
-    if (!confirm("Cancelar a renovação automática da sua assinatura?")) return;
-    setAssinaturaBusy(true);
-    try {
-      const atualizada = await cancelarAssinatura(userId);
-      if (atualizada) {
-        setAssinatura(atualizada);
-        setPlano(atualizada.plano);
-      }
-      toast.success("Assinatura cancelada. Você mantém os benefícios até o fim do período.");
-    } catch {
-      toast.error("Não foi possível cancelar agora.");
-    }
-    setAssinaturaBusy(false);
-  }
-
-  async function handleReativar() {
-    setAssinaturaBusy(true);
-    try {
-      const atualizada = await reativarAssinatura(userId);
-      if (atualizada) {
-        setAssinatura(atualizada);
-        setPlano(atualizada.plano);
-      }
-      toast.success("Renovação automática reativada!");
-    } catch {
-      toast.error("Não foi possível reativar agora.");
-    }
-    setAssinaturaBusy(false);
-  }
 
 
   async function handleDisableMfa() {
@@ -160,7 +108,6 @@ function PerfilPage() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const planoInfo = PLANOS[plano] ?? PLANOS.gratuito;
   const dirty = nome.trim() !== initialNome && nome.trim().length >= 2;
 
   return (
@@ -191,114 +138,6 @@ function PerfilPage() {
       </header>
 
       <main className="mx-auto -mt-10 max-w-md space-y-4 px-4">
-        <section
-          className="rounded-2xl border border-border bg-card p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
-        >
-          <h2 className="text-sm font-bold text-foreground">Dados da conta</h2>
-
-          <label className="mt-4 block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <User className="h-3.5 w-3.5" /> Nome
-            </span>
-            <input
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              disabled={loading}
-              placeholder="Como quer ser chamado(a)?"
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-            />
-          </label>
-
-          <label className="mt-3 block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Mail className="h-3.5 w-3.5" /> Email
-            </span>
-            <input
-              value={email}
-              disabled
-              className="w-full cursor-not-allowed rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-muted-foreground"
-            />
-          </label>
-
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-primary-foreground transition disabled:opacity-40"
-            style={{ background: "var(--gradient-hero)" }}
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Salvando..." : "Salvar alterações"}
-          </button>
-        </section>
-
-        <section
-          className="rounded-2xl border border-border bg-card p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Plano atual</p>
-              <p className="mt-0.5 text-base font-bold text-foreground">{planoInfo.nome}</p>
-            </div>
-            <span
-              className={`grid h-10 w-10 place-items-center rounded-xl text-white ${planoInfo.cor}`}
-            >
-              <Crown className="h-5 w-5" />
-            </span>
-          </div>
-
-          {assinatura && (
-            <>
-              <div className="mt-3 flex items-center gap-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_INFO[assinatura.status].classe}`}
-                >
-                  {STATUS_INFO[assinatura.status].rotulo}
-                </span>
-                {assinatura.expiraEm && assinatura.status !== "vencido" && (
-                  <span className="text-xs text-muted-foreground">
-                    {assinatura.status === "cancelado" ? "Válida até" : "Renova em"}{" "}
-                    {formatarData(assinatura.expiraEm)}
-                    {diasRestantes(assinatura.expiraEm) !== null &&
-                      ` (${diasRestantes(assinatura.expiraEm)} dias)`}
-                  </span>
-                )}
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {STATUS_INFO[assinatura.status].descricao}
-              </p>
-
-              {assinatura.plano !== "gratuito" && assinatura.status === "ativo" && (
-                <button
-                  onClick={handleCancelar}
-                  disabled={assinaturaBusy}
-                  className="mt-4 w-full rounded-xl border border-danger/30 bg-danger/5 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger/10 disabled:opacity-40"
-                >
-                  Cancelar assinatura
-                </button>
-              )}
-
-              {assinatura.plano !== "gratuito" && assinatura.status === "cancelado" && (
-                <button
-                  onClick={handleReativar}
-                  disabled={assinaturaBusy}
-                  className="mt-4 w-full rounded-xl py-2.5 text-sm font-semibold text-primary-foreground transition disabled:opacity-40"
-                  style={{ background: "var(--gradient-hero)" }}
-                >
-                  Reativar renovação automática
-                </button>
-              )}
-            </>
-          )}
-
-          <Link
-            to="/planos"
-            className="mt-3 flex items-center justify-center rounded-xl border border-accent/40 bg-accent/5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/10"
-          >
-            {plano === "gratuito" ? "Fazer upgrade" : "Ver planos"}
-          </Link>
-        </section>
 
 
         <Link
