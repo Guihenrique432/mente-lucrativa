@@ -21,7 +21,6 @@ import { Route as AuthenticatedVisaoRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSofiaRouteImport } from './routes/_authenticated/sofia'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated/relatorios'
 import { Route as AuthenticatedReceitasRouteImport } from './routes/_authenticated/receitas'
-import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
@@ -88,11 +87,6 @@ const AuthenticatedReceitasRoute = AuthenticatedReceitasRouteImport.update({
   path: '/receitas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
-  id: '/planos',
-  path: '/planos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -136,7 +130,6 @@ export interface FileRoutesByFullPath {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/planos': typeof AuthenticatedPlanosRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
@@ -155,7 +148,6 @@ export interface FileRoutesByTo {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/planos': typeof AuthenticatedPlanosRoute
   '/receitas': typeof AuthenticatedReceitasRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
   '/sofia': typeof AuthenticatedSofiaRoute
@@ -177,7 +169,6 @@ export interface FileRoutesById {
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/receitas': typeof AuthenticatedReceitasRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
   '/_authenticated/sofia': typeof AuthenticatedSofiaRoute
@@ -200,7 +191,6 @@ export interface FileRouteTypes {
     | '/historico'
     | '/metas'
     | '/perfil'
-    | '/planos'
     | '/receitas'
     | '/relatorios'
     | '/sofia'
@@ -219,7 +209,6 @@ export interface FileRouteTypes {
     | '/historico'
     | '/metas'
     | '/perfil'
-    | '/planos'
     | '/receitas'
     | '/relatorios'
     | '/sofia'
@@ -240,7 +229,6 @@ export interface FileRouteTypes {
     | '/_authenticated/historico'
     | '/_authenticated/metas'
     | '/_authenticated/perfil'
-    | '/_authenticated/planos'
     | '/_authenticated/receitas'
     | '/_authenticated/relatorios'
     | '/_authenticated/sofia'
@@ -345,13 +333,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReceitasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/planos': {
-      id: '/_authenticated/planos'
-      path: '/planos'
-      fullPath: '/planos'
-      preLoaderRoute: typeof AuthenticatedPlanosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
       path: '/perfil'
@@ -404,7 +385,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
-  AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedReceitasRoute: typeof AuthenticatedReceitasRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
   AuthenticatedSofiaRoute: typeof AuthenticatedSofiaRoute
@@ -419,7 +399,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
-  AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedReceitasRoute: AuthenticatedReceitasRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
   AuthenticatedSofiaRoute: AuthenticatedSofiaRoute,
