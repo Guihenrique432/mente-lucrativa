@@ -90,7 +90,7 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
               { subject: vapidSubject, publicKey: vapidPublic, privateKey: vapidPrivate }
             );
 
-            const res = await fetch(inscricao.endpoint, payload);
+            const res = await fetch(inscricao.endpoint, payload as unknown as RequestInit);
 
             if (res.status === 404 || res.status === 410) {
               await supabase.from("push_subscriptions").delete().eq("id", inscricao.id);
