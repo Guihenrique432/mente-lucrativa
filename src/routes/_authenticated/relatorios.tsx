@@ -1,7 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock, Target, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Target, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { SkeletonChart } from "@/components/Skeleton";
@@ -258,7 +258,6 @@ function RelatoriosPage() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
   const [metaMensal, setMetaMensal] = useState(0);
-  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
