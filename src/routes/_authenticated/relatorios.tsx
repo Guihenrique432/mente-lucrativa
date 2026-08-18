@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, TrendingUp, TrendingDown, Download, FileText, Lock, Target, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { carregarAssinatura } from "@/lib/assinatura";
 import { BottomNav } from "@/components/BottomNav";
 import { SkeletonChart } from "@/components/Skeleton";
 
@@ -258,7 +257,6 @@ function RelatoriosPage() {
   const [meses, setMeses] = useState<3 | 6 | 12>(6);
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
   const [metaMensal, setMetaMensal] = useState(0);
   const navigate = useNavigate();
 
@@ -268,11 +266,12 @@ function RelatoriosPage() {
       const meta = data.user?.user_metadata as { full_name?: string; name?: string } | undefined;
       setNomeUsuario(meta?.full_name || meta?.name || "");
       if (data.user) {
-        const [assinatura, m] = await Promise.all([
-          carregarAssinatura(data.user.id),
-          supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-        ]);
-        setIsPremium(assinatura?.plano === "business" && assinatura.status !== "vencido");
+        const m = await supabase
+          .from("metas")
+          .select("meta_lucro")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
         setMetaMensal(Number(m.data?.meta_lucro ?? 0));
       }
     })();
@@ -353,13 +352,6 @@ function RelatoriosPage() {
   };
 
   async function handlePDF() {
-    if (!isPremium) {
-      toast.info("Exportar em PDF é do plano Prime", {
-        description: "Assine o Prime para baixar seus relatórios em PDF.",
-        action: { label: "Ver planos", onClick: () => navigate({ to: "/planos" }) },
-      });
-      return;
-    }
     setExporting("pdf");
 
     try {
@@ -409,14 +401,10 @@ function RelatoriosPage() {
             <button
               onClick={handlePDF}
               disabled={exporting !== null || loading}
-              title={isPremium ? "Exportar relatório em PDF" : "Disponível no plano Prime"}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${
-                isPremium
-                  ? "bg-white text-foreground hover:bg-white/90"
-                  : "bg-white/10 text-white backdrop-blur-md hover:bg-white/15"
-              }`}
+              title="Exportar relatório em PDF"
+              className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white/90 disabled:opacity-50"
             >
-              {isPremium ? <FileText className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+              <FileText className="h-3.5 w-3.5" />
               {exporting === "pdf" ? "Gerando..." : "PDF"}
             </button>
 
