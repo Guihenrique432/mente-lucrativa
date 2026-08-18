@@ -22,8 +22,11 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
     handlers: {
       POST: async ({ request }) => {
         const apiKey = request.headers.get("apikey");
-        const anonKey = process.env["SUPABASE_ANON_KEY"];
-        if (!apiKey || !anonKey || apiKey !== anonKey) {
+        const chavesValidas = [
+          process.env["SUPABASE_ANON_KEY"],
+          process.env["SUPABASE_PUBLISHABLE_KEY"],
+        ].filter(Boolean);
+        if (!apiKey || !chavesValidas.includes(apiKey)) {
           return json({ error: "Não autorizado" }, 401);
         }
 
