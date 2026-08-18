@@ -7,4 +7,3 @@ O Lucro Real é um aplicativo web (PWA) para autônomos, lojistas e pequenos emp
 ## Pages
 
 - [Início](/): Painel com faturamento, lucro real e o Radar do Negócio.
-- [Planos](/planos): Planos Gratuito, Profissional e Premium.
