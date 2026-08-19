@@ -60,6 +60,41 @@ function linhaLivreParaCsv(linha: string, sep: string): string | null {
   return [data, desc || "Lançamento", valor].join(sep);
 }
 
+function parseLinhaCsv(l: string, sep: string): Linha | null {
+  const c = l.split(sep).map((x) => x.replace(/^"|"$/g, "").trim());
+  if (c.length < 2) return null;
+
+  // formatos aceitos: data;tipo;valor;categoria;observacao  |  data;descricao;valor
+  const data = normalizarData(c[0]);
+  let tipoCampo = "";
+  let valorBruto = "";
+  let categoria = "";
+  let observacao = "";
+
+  if (c.length >= 4 && /receit|despes|entrad|saíd|said|crédit|débit|credit|debit/i.test(c[1])) {
+    tipoCampo = c[1];
+    valorBruto = c[2];
+    categoria = c[3] || "Importado";
+    observacao = c[4] ?? "";
+  } else {
+    observacao = c[1] ?? "";
+    valorBruto = c[2] ?? c[1] ?? "";
+    categoria = c[3] || "Importado";
+    tipoCampo = observacao;
+  }
+
+  const valorNum = normalizarValor(valorBruto);
+  if (!valorNum) return null;
+
+  return {
+    tipo: detectarTipo(tipoCampo, valorNum),
+    valor: Math.abs(valorNum),
+    data,
+    categoria: categoria || "Importado",
+    observacao: observacao.slice(0, 200),
+  };
+}
+
 export function parseExtrato(texto: string): Linha[] {
   const linhas = texto
     .split(/\r?\n/)
@@ -67,55 +102,22 @@ export function parseExtrato(texto: string): Linha[] {
     .filter(Boolean);
   if (!linhas.length) return [];
 
-  const sep = (linhas[0].match(/;/g)?.length ?? 0) >= (linhas[0].match(/,/g)?.length ?? 0) ? ";" : ",";
+  const sep = linhas.some((l) => l.includes(";")) ? ";" : ",";
   const primeira = linhas[0].toLowerCase();
-  const temCabecalho = /data|valor|tipo|categoria|descri/.test(primeira);
+  const temCabecalho = /^[^\d]*\b(data|valor|tipo|categoria|descri)/.test(primeira) && primeira.includes(sep);
   const corpo = temCabecalho ? linhas.slice(1) : linhas;
 
   const out: Linha[] = [];
   for (const linhaOriginal of corpo) {
-    let l = linhaOriginal;
-    if (!l.includes(sep)) {
-      const convertida = linhaLivreParaCsv(l, sep);
-      if (!convertida) continue;
-      l = convertida;
+    let item = linhaOriginal.includes(sep) ? parseLinhaCsv(linhaOriginal, sep) : null;
+    if (!item) {
+      const convertida = linhaLivreParaCsv(linhaOriginal, "\u0001");
+      if (convertida) item = parseLinhaCsv(convertida, "\u0001");
     }
-    const c = l.split(sep).map((x) => x.replace(/^"|"$/g, "").trim());
-    if (c.length < 2) continue;
-
-
-    // formatos aceitos: data;tipo;valor;categoria;observacao  |  data;descricao;valor
-    let data = normalizarData(c[0]);
-    let tipoCampo = "";
-    let valorBruto = "";
-    let categoria = "";
-    let observacao = "";
-
-    if (c.length >= 4 && /receit|despes|entrad|saíd|said|crédit|débit|credit|debit/i.test(c[1])) {
-      tipoCampo = c[1];
-      valorBruto = c[2];
-      categoria = c[3] || "Importado";
-      observacao = c[4] ?? "";
-    } else {
-      observacao = c[1] ?? "";
-      valorBruto = c[2] ?? c[1] ?? "";
-      categoria = c[3] || "Importado";
-      tipoCampo = observacao;
-    }
-
-    const valorNum = normalizarValor(valorBruto);
-    if (!valorNum) continue;
-    const tipo = detectarTipo(tipoCampo, valorNum);
-
-    out.push({
-      tipo,
-      valor: Math.abs(valorNum),
-      data,
-      categoria: categoria || "Importado",
-      observacao: observacao.slice(0, 200),
-    });
+    if (item) out.push(item);
   }
   return out;
+
 }
 
 export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
