@@ -41,7 +41,7 @@ function detectarTipo(campo: string, valor: number): "receita" | "despesa" {
 }
 
 const RE_DATA = /(\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?|\d{4}-\d{2}-\d{2})/;
-const RE_VALOR = /(-?\s?R?\$?\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s?R?\$?\s?-?\d+[.,]\d{2}|-?\s?R?\$?\s?-?\d+)\s*(C|D)?$/i;
+const RE_VALOR = /(-?\s?(?:R\$\s?)?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s?(?:R\$\s?)?-?\d+[.,]\d{2}|-?\s?(?:R\$\s?)?-?\d+)\s*(C|D)?$/i;
 
 /** Converte linhas soltas de extrato/PDF ("01/08 Venda balcão 1.200,00") em CSV. */
 function linhaLivreParaCsv(linha: string, sep: string): string | null {
