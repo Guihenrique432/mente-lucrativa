@@ -38,6 +38,26 @@ function detectarTipo(campo: string, valor: number): "receita" | "despesa" {
   return valor < 0 ? "despesa" : "receita";
 }
 
+const RE_DATA = /(\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?|\d{4}-\d{2}-\d{2})/;
+const RE_VALOR = /(-?\s?R?\$?\s?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s?R?\$?\s?-?\d+[.,]\d{2}|-?\s?R?\$?\s?-?\d+)\s*(C|D)?$/i;
+
+/** Converte linhas soltas de extrato/PDF ("01/08 Venda balcão 1.200,00") em CSV. */
+function linhaLivreParaCsv(linha: string, sep: string): string | null {
+  const mData = linha.match(RE_DATA);
+  const mValor = linha.match(RE_VALOR);
+  if (!mData || !mValor) return null;
+  let valor = mValor[1].replace(/\s|R\$/gi, "");
+  if ((mValor[2] ?? "").toUpperCase() === "D" && !valor.startsWith("-")) valor = `-${valor}`;
+  const desc = linha
+    .replace(mData[1], " ")
+    .replace(mValor[0], " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  let data = mData[1];
+  if (/^\d{1,2}[\/.-]\d{1,2}$/.test(data)) data = `${data}/${new Date().getFullYear()}`;
+  return [data, desc || "Lançamento", valor].join(sep);
+}
+
 export function parseExtrato(texto: string): Linha[] {
   const linhas = texto
     .split(/\r?\n/)
@@ -51,9 +71,16 @@ export function parseExtrato(texto: string): Linha[] {
   const corpo = temCabecalho ? linhas.slice(1) : linhas;
 
   const out: Linha[] = [];
-  for (const l of corpo) {
+  for (const linhaOriginal of corpo) {
+    let l = linhaOriginal;
+    if (!l.includes(sep)) {
+      const convertida = linhaLivreParaCsv(l, sep);
+      if (!convertida) continue;
+      l = convertida;
+    }
     const c = l.split(sep).map((x) => x.replace(/^"|"$/g, "").trim());
     if (c.length < 2) continue;
+
 
     // formatos aceitos: data;tipo;valor;categoria;observacao  |  data;descricao;valor
     let data = normalizarData(c[0]);
