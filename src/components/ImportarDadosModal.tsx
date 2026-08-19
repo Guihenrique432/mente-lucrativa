@@ -11,6 +11,8 @@ type Linha = {
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 
 function normalizarData(v: string): string {
   const s = (v ?? "").trim();
