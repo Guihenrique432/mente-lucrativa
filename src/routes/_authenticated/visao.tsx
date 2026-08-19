@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle, Upload } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { ImportarDadosModal } from "@/components/ImportarDadosModal";
 import { simularDecisao } from "@/lib/visao.functions";
 import type { ResultadoSimulacao } from "@/lib/visao-calc";
 
@@ -45,6 +46,7 @@ function VisaoPage() {
   const [erro, setErro] = useState("");
   const [res, setRes] = useState<(ResultadoSimulacao & { analise: string }) | null>(null);
   const [cenarioAtivo, setCenarioAtivo] = useState("agora");
+  const [importar, setImportar] = useState(false);
 
   async function rodar(e: React.FormEvent) {
     e.preventDefault();
@@ -103,6 +105,19 @@ function VisaoPage() {
 
       <main className="mx-auto w-full max-w-md px-5">
         <h1 className="sr-only">Visão Financeira — impacto das suas decisões</h1>
+
+        <button
+          type="button"
+          onClick={() => setImportar(true)}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-accent/40 bg-accent/10 py-3 text-sm font-semibold text-accent"
+        >
+          <Upload className="h-4 w-4" />
+          Importar extrato, faturas e metas
+        </button>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Traga seus lançamentos reais para a projeção deixar de mostrar valores zerados.
+        </p>
+
 
         <form onSubmit={rodar} className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4">
           <p className="text-sm font-semibold text-foreground">Simule uma decisão</p>
@@ -306,6 +321,8 @@ function VisaoPage() {
       </main>
 
       <BottomNav active="relatorios" />
+
+      {importar && <ImportarDadosModal onClose={() => setImportar(false)} />}
     </div>
   );
 }
