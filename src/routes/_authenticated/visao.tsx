@@ -46,6 +46,7 @@ function VisaoPage() {
   const [erro, setErro] = useState("");
   const [res, setRes] = useState<(ResultadoSimulacao & { analise: string }) | null>(null);
   const [cenarioAtivo, setCenarioAtivo] = useState("agora");
+  const [importar, setImportar] = useState(false);
 
   async function rodar(e: React.FormEvent) {
     e.preventDefault();
