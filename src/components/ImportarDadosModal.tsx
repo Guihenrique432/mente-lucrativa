@@ -11,6 +11,8 @@ type Linha = {
 };
 
 const hoje = () => new Date().toISOString().slice(0, 10);
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 
 function normalizarData(v: string): string {
   const s = (v ?? "").trim();
@@ -38,6 +40,61 @@ function detectarTipo(campo: string, valor: number): "receita" | "despesa" {
   return valor < 0 ? "despesa" : "receita";
 }
 
+const RE_DATA = /(\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?|\d{4}-\d{2}-\d{2})/;
+const RE_VALOR = /(-?\s?(?:R\$\s?)?-?\d{1,3}(?:\.\d{3})*(?:,\d{2})|-?\s?(?:R\$\s?)?-?\d+[.,]\d{2}|-?\s?(?:R\$\s?)?-?\d+)\s*(C|D)?$/i;
+
+/** Converte linhas soltas de extrato/PDF ("01/08 Venda balcão 1.200,00") em CSV. */
+function linhaLivreParaCsv(linha: string, sep: string): string | null {
+  const mData = linha.match(RE_DATA);
+  const mValor = linha.match(RE_VALOR);
+  if (!mData || !mValor) return null;
+  let valor = mValor[1].replace(/\s|R\$/gi, "");
+  if ((mValor[2] ?? "").toUpperCase() === "D" && !valor.startsWith("-")) valor = `-${valor}`;
+  const desc = linha
+    .replace(mData[1], " ")
+    .replace(mValor[0], " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  let data = mData[1];
+  if (/^\d{1,2}[\/.-]\d{1,2}$/.test(data)) data = `${data}/${new Date().getFullYear()}`;
+  return [data, desc || "Lançamento", valor].join(sep);
+}
+
+function parseLinhaCsv(l: string, sep: string): Linha | null {
+  const c = l.split(sep).map((x) => x.replace(/^"|"$/g, "").trim());
+  if (c.length < 2) return null;
+
+  // formatos aceitos: data;tipo;valor;categoria;observacao  |  data;descricao;valor
+  const data = normalizarData(c[0]);
+  let tipoCampo = "";
+  let valorBruto = "";
+  let categoria = "";
+  let observacao = "";
+
+  if (c.length >= 4 && /receit|despes|entrad|saíd|said|crédit|débit|credit|debit/i.test(c[1])) {
+    tipoCampo = c[1];
+    valorBruto = c[2];
+    categoria = c[3] || "Importado";
+    observacao = c[4] ?? "";
+  } else {
+    observacao = c[1] ?? "";
+    valorBruto = c[2] ?? c[1] ?? "";
+    categoria = c[3] || "Importado";
+    tipoCampo = observacao;
+  }
+
+  const valorNum = normalizarValor(valorBruto);
+  if (!valorNum) return null;
+
+  return {
+    tipo: detectarTipo(tipoCampo, valorNum),
+    valor: Math.abs(valorNum),
+    data,
+    categoria: categoria || "Importado",
+    observacao: observacao.slice(0, 200),
+  };
+}
+
 export function parseExtrato(texto: string): Linha[] {
   const linhas = texto
     .split(/\r?\n/)
@@ -45,48 +102,24 @@ export function parseExtrato(texto: string): Linha[] {
     .filter(Boolean);
   if (!linhas.length) return [];
 
-  const sep = (linhas[0].match(/;/g)?.length ?? 0) >= (linhas[0].match(/,/g)?.length ?? 0) ? ";" : ",";
+  const sep = linhas.some((l) => l.includes(";")) ? ";" : ",";
   const primeira = linhas[0].toLowerCase();
-  const temCabecalho = /data|valor|tipo|categoria|descri/.test(primeira);
+  const temCabecalho = /^[^\d]*\b(data|valor|tipo|categoria|descri)/.test(primeira) && primeira.includes(sep);
   const corpo = temCabecalho ? linhas.slice(1) : linhas;
 
   const out: Linha[] = [];
-  for (const l of corpo) {
-    const c = l.split(sep).map((x) => x.replace(/^"|"$/g, "").trim());
-    if (c.length < 2) continue;
-
-    // formatos aceitos: data;tipo;valor;categoria;observacao  |  data;descricao;valor
-    let data = normalizarData(c[0]);
-    let tipoCampo = "";
-    let valorBruto = "";
-    let categoria = "";
-    let observacao = "";
-
-    if (c.length >= 4 && /receit|despes|entrad|saíd|said|crédit|débit|credit|debit/i.test(c[1])) {
-      tipoCampo = c[1];
-      valorBruto = c[2];
-      categoria = c[3] || "Importado";
-      observacao = c[4] ?? "";
-    } else {
-      observacao = c[1] ?? "";
-      valorBruto = c[2] ?? c[1] ?? "";
-      categoria = c[3] || "Importado";
-      tipoCampo = observacao;
+  for (const linhaOriginal of corpo) {
+    const primeiroCampo = linhaOriginal.split(sep)[0]?.replace(/^"|"$/g, "").trim() ?? "";
+    const pareceCsv = linhaOriginal.includes(sep) && new RegExp(`^(${RE_DATA.source})$`).test(primeiroCampo);
+    let item = pareceCsv ? parseLinhaCsv(linhaOriginal, sep) : null;
+    if (!item) {
+      const convertida = linhaLivreParaCsv(linhaOriginal, "\u0001");
+      if (convertida) item = parseLinhaCsv(convertida, "\u0001");
     }
-
-    const valorNum = normalizarValor(valorBruto);
-    if (!valorNum) continue;
-    const tipo = detectarTipo(tipoCampo, valorNum);
-
-    out.push({
-      tipo,
-      valor: Math.abs(valorNum),
-      data,
-      categoria: categoria || "Importado",
-      observacao: observacao.slice(0, 200),
-    });
+    if (item) out.push(item);
   }
   return out;
+
 }
 
 export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; onDone?: () => void }) {
@@ -97,11 +130,48 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
   const [ok, setOk] = useState("");
 
   const previa = parseExtrato(texto);
+  const totalEntradas = previa.filter((l) => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const totalSaidas = previa.filter((l) => l.tipo === "despesa").reduce((s, l) => s + l.valor, 0);
+  const lucroPrevisto = totalEntradas - totalSaidas;
+  const metaNumPrevia = meta ? normalizarValor(meta) : 0;
+  const progressoMeta = metaNumPrevia > 0 ? Math.max(0, Math.min(100, (lucroPrevisto / metaNumPrevia) * 100)) : 0;
 
   async function lerArquivo(file: File) {
-    const t = await file.text();
-    setTexto(t);
+    setErro("");
+    setOk("");
+    try {
+      if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+        setLoading(true);
+        const pdfjs: any = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = (
+          await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
+        ).default;
+        const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+        const linhas: string[] = [];
+        for (let p = 1; p <= doc.numPages; p++) {
+          const content = await (await doc.getPage(p)).getTextContent();
+          const porLinha = new Map<number, string[]>();
+          for (const item of content.items as any[]) {
+            if (!item.str?.trim()) continue;
+            const y = Math.round(item.transform[5]);
+            const chave = [...porLinha.keys()].find((k) => Math.abs(k - y) <= 2) ?? y;
+            porLinha.set(chave, [...(porLinha.get(chave) ?? []), item.str]);
+          }
+          [...porLinha.entries()]
+            .sort((a, b) => b[0] - a[0])
+            .forEach(([, partes]) => linhas.push(partes.join(" ").replace(/\s+/g, " ").trim()));
+        }
+        setTexto(linhas.join("\n"));
+      } else {
+        setTexto(await file.text());
+      }
+    } catch {
+      setErro("Não consegui ler esse arquivo. Tente um CSV ou cole o texto.");
+    } finally {
+      setLoading(false);
+    }
   }
+
 
   async function importar() {
     setErro("");
@@ -170,16 +240,17 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
         </div>
 
         <p className="mt-2 text-xs text-muted-foreground">
-          Cole o extrato do banco ou a fatura do cartão (uma linha por lançamento) ou envie um arquivo CSV. Aceita
-          <strong> data;tipo;valor;categoria;observação</strong> ou <strong>data;descrição;valor</strong>.
+          Cole o extrato do banco ou a fatura do cartão (uma linha por lançamento) ou envie um arquivo CSV, TXT ou PDF.
+          Aceita <strong>data;tipo;valor;categoria;observação</strong>, <strong>data;descrição;valor</strong> ou linhas
+          soltas do extrato.
         </p>
 
         <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground">
           <FileText className="h-4 w-4" />
-          Escolher arquivo CSV/TXT
+          Escolher arquivo CSV, TXT ou PDF
           <input
             type="file"
-            accept=".csv,.txt,text/csv,text/plain"
+            accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -208,12 +279,46 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
         </label>
 
         {texto.trim() && (
-          <p className="mt-3 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
-            Prévia: <strong className="text-foreground">{previa.length}</strong> lançamento(s) reconhecido(s) —{" "}
-            {previa.filter((l) => l.tipo === "receita").length} entrada(s) e{" "}
-            {previa.filter((l) => l.tipo === "despesa").length} saída(s).
-          </p>
+          <div className="mt-3 space-y-2 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
+            <p>
+              Prévia: <strong className="text-foreground">{previa.length}</strong> lançamento(s) reconhecido(s) —{" "}
+              {previa.filter((l) => l.tipo === "receita").length} entrada(s) e{" "}
+              {previa.filter((l) => l.tipo === "despesa").length} saída(s).
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <p>Entrou</p>
+                <p className="font-semibold text-success">{brl(totalEntradas)}</p>
+              </div>
+              <div>
+                <p>Saiu</p>
+                <p className="font-semibold text-danger">{brl(totalSaidas)}</p>
+              </div>
+              <div>
+                <p>Sobra</p>
+                <p className={`font-semibold ${lucroPrevisto < 0 ? "text-danger" : "text-foreground"}`}>
+                  {brl(lucroPrevisto)}
+                </p>
+              </div>
+            </div>
+            {metaNumPrevia > 0 && (
+              <div>
+                <p>
+                  Meta de lucro <strong className="text-foreground">{brl(metaNumPrevia)}</strong> —{" "}
+                  {progressoMeta.toFixed(0)}% alcançada com esses lançamentos.
+                </p>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                  <div
+                    className={`h-full rounded-full ${lucroPrevisto < 0 ? "bg-danger" : "bg-success"}`}
+                    style={{ width: `${progressoMeta}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {previa.length === 0 && <p className="text-danger">Não reconheci nenhum lançamento nesse texto.</p>}
+          </div>
         )}
+
 
         {erro && <p className="mt-3 text-xs font-medium text-danger">{erro}</p>}
         {ok && (
