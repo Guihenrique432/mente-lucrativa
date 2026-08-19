@@ -321,6 +321,8 @@ function VisaoPage() {
       </main>
 
       <BottomNav active="relatorios" />
+
+      {importar && <ImportarDadosModal onClose={() => setImportar(false)} />}
     </div>
   );
 }
