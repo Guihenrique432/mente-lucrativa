@@ -106,6 +106,19 @@ function VisaoPage() {
       <main className="mx-auto w-full max-w-md px-5">
         <h1 className="sr-only">Visão Financeira — impacto das suas decisões</h1>
 
+        <button
+          type="button"
+          onClick={() => setImportar(true)}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-accent/40 bg-accent/10 py-3 text-sm font-semibold text-accent"
+        >
+          <Upload className="h-4 w-4" />
+          Importar extrato, faturas e metas
+        </button>
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          Traga seus lançamentos reais para a projeção deixar de mostrar valores zerados.
+        </p>
+
+
         <form onSubmit={rodar} className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4">
           <p className="text-sm font-semibold text-foreground">Simule uma decisão</p>
 
