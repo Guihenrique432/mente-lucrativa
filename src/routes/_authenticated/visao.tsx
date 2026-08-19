@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle, Upload } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { ImportarDadosModal } from "@/components/ImportarDadosModal";
 import { simularDecisao } from "@/lib/visao.functions";
 import type { ResultadoSimulacao } from "@/lib/visao-calc";
 
