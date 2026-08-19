@@ -124,11 +124,48 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
   const [ok, setOk] = useState("");
 
   const previa = parseExtrato(texto);
+  const totalEntradas = previa.filter((l) => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const totalSaidas = previa.filter((l) => l.tipo === "despesa").reduce((s, l) => s + l.valor, 0);
+  const lucroPrevisto = totalEntradas - totalSaidas;
+  const metaNumPrevia = meta ? normalizarValor(meta) : 0;
+  const progressoMeta = metaNumPrevia > 0 ? Math.max(0, Math.min(100, (lucroPrevisto / metaNumPrevia) * 100)) : 0;
 
   async function lerArquivo(file: File) {
-    const t = await file.text();
-    setTexto(t);
+    setErro("");
+    setOk("");
+    try {
+      if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+        setLoading(true);
+        const pdfjs: any = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = (
+          await import("pdfjs-dist/build/pdf.worker.min.mjs?url")
+        ).default;
+        const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+        const linhas: string[] = [];
+        for (let p = 1; p <= doc.numPages; p++) {
+          const content = await (await doc.getPage(p)).getTextContent();
+          const porLinha = new Map<number, string[]>();
+          for (const item of content.items as any[]) {
+            if (!item.str?.trim()) continue;
+            const y = Math.round(item.transform[5]);
+            const chave = [...porLinha.keys()].find((k) => Math.abs(k - y) <= 2) ?? y;
+            porLinha.set(chave, [...(porLinha.get(chave) ?? []), item.str]);
+          }
+          [...porLinha.entries()]
+            .sort((a, b) => b[0] - a[0])
+            .forEach(([, partes]) => linhas.push(partes.join(" ").replace(/\s+/g, " ").trim()));
+        }
+        setTexto(linhas.join("\n"));
+      } else {
+        setTexto(await file.text());
+      }
+    } catch {
+      setErro("Não consegui ler esse arquivo. Tente um CSV ou cole o texto.");
+    } finally {
+      setLoading(false);
+    }
   }
+
 
   async function importar() {
     setErro("");
