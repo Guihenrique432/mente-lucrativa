@@ -234,16 +234,17 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
         </div>
 
         <p className="mt-2 text-xs text-muted-foreground">
-          Cole o extrato do banco ou a fatura do cartão (uma linha por lançamento) ou envie um arquivo CSV. Aceita
-          <strong> data;tipo;valor;categoria;observação</strong> ou <strong>data;descrição;valor</strong>.
+          Cole o extrato do banco ou a fatura do cartão (uma linha por lançamento) ou envie um arquivo CSV, TXT ou PDF.
+          Aceita <strong>data;tipo;valor;categoria;observação</strong>, <strong>data;descrição;valor</strong> ou linhas
+          soltas do extrato.
         </p>
 
         <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground">
           <FileText className="h-4 w-4" />
-          Escolher arquivo CSV/TXT
+          Escolher arquivo CSV, TXT ou PDF
           <input
             type="file"
-            accept=".csv,.txt,text/csv,text/plain"
+            accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -272,12 +273,46 @@ export function ImportarDadosModal({ onClose, onDone }: { onClose: () => void; o
         </label>
 
         {texto.trim() && (
-          <p className="mt-3 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
-            Prévia: <strong className="text-foreground">{previa.length}</strong> lançamento(s) reconhecido(s) —{" "}
-            {previa.filter((l) => l.tipo === "receita").length} entrada(s) e{" "}
-            {previa.filter((l) => l.tipo === "despesa").length} saída(s).
-          </p>
+          <div className="mt-3 space-y-2 rounded-xl bg-surface p-3 text-xs text-muted-foreground">
+            <p>
+              Prévia: <strong className="text-foreground">{previa.length}</strong> lançamento(s) reconhecido(s) —{" "}
+              {previa.filter((l) => l.tipo === "receita").length} entrada(s) e{" "}
+              {previa.filter((l) => l.tipo === "despesa").length} saída(s).
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <p>Entrou</p>
+                <p className="font-semibold text-success">{brl(totalEntradas)}</p>
+              </div>
+              <div>
+                <p>Saiu</p>
+                <p className="font-semibold text-danger">{brl(totalSaidas)}</p>
+              </div>
+              <div>
+                <p>Sobra</p>
+                <p className={`font-semibold ${lucroPrevisto < 0 ? "text-danger" : "text-foreground"}`}>
+                  {brl(lucroPrevisto)}
+                </p>
+              </div>
+            </div>
+            {metaNumPrevia > 0 && (
+              <div>
+                <p>
+                  Meta de lucro <strong className="text-foreground">{brl(metaNumPrevia)}</strong> —{" "}
+                  {progressoMeta.toFixed(0)}% alcançada com esses lançamentos.
+                </p>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                  <div
+                    className={`h-full rounded-full ${lucroPrevisto < 0 ? "bg-danger" : "bg-success"}`}
+                    style={{ width: `${progressoMeta}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {previa.length === 0 && <p className="text-danger">Não reconheci nenhum lançamento nesse texto.</p>}
+          </div>
         )}
+
 
         {erro && <p className="mt-3 text-xs font-medium text-danger">{erro}</p>}
         {ok && (
