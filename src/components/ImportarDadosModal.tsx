@@ -109,7 +109,9 @@ export function parseExtrato(texto: string): Linha[] {
 
   const out: Linha[] = [];
   for (const linhaOriginal of corpo) {
-    let item = linhaOriginal.includes(sep) ? parseLinhaCsv(linhaOriginal, sep) : null;
+    const primeiroCampo = linhaOriginal.split(sep)[0]?.replace(/^"|"$/g, "").trim() ?? "";
+    const pareceCsv = linhaOriginal.includes(sep) && new RegExp(`^(${RE_DATA.source})$`).test(primeiroCampo);
+    let item = pareceCsv ? parseLinhaCsv(linhaOriginal, sep) : null;
     if (!item) {
       const convertida = linhaLivreParaCsv(linhaOriginal, "\u0001");
       if (convertida) item = parseLinhaCsv(convertida, "\u0001");
