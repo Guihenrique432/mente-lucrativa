@@ -68,9 +68,12 @@ const hashStr = (s: string) => {
 };
 
 function csvEscape(v: string | number) {
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  // Neutraliza injeção de fórmula em planilhas (Excel/Sheets)
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+
 
 function downloadFile(name: string, content: string, type = "text/csv;charset=utf-8") {
   const blob = new Blob(["\ufeff" + content], { type });
