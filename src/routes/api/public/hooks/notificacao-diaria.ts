@@ -4,10 +4,33 @@ import { buildPushPayload } from "@block65/webcrypto-web-push";
 import type { Database } from "@/integrations/supabase/types";
 
 const LOTE_MAXIMO = 500;
+const JANELA_MINUTOS = 5;
 const MENSAGEM = "Vamos mostrar seu lucro real de hoje e quanto você gastou?";
 
-function hojeSaoPaulo() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+function agoraSaoPaulo() {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => partes.find((p) => p.type === t)?.value ?? "00";
+  return {
+    data: `${get("year")}-${get("month")}-${get("day")}`,
+    minutos: Number(get("hour")) * 60 + Number(get("minute")),
+  };
+}
+
+function paraMinutos(horario: string) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(horario.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
 }
 
 function json(body: unknown, status = 200) {
@@ -43,14 +66,15 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
           auth: { persistSession: false, autoRefreshToken: false },
         });
 
-        const data = hojeSaoPaulo();
+        const { data, minutos } = agoraSaoPaulo();
+        const slot = `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 
-        // trava de execução única por dia
+        // trava de execução única por dia + horário
         const { error: lockError } = await supabase
           .from("notificacao_execucoes")
-          .insert({ data, status: "rodando" });
+          .insert({ data, horario: slot, status: "rodando" });
         if (lockError) {
-          return json({ skipped: true, motivo: "execução já registrada hoje" });
+          return json({ skipped: true, motivo: "execução já registrada neste horário" });
         }
 
         const { data: inscricoes, error: subError } = await supabase
@@ -62,23 +86,58 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
           await supabase
             .from("notificacao_execucoes")
             .update({ status: "erro", detalhe: subError.message, finalizado_em: new Date().toISOString() })
-            .eq("data", data);
+            .eq("data", data)
+            .eq("horario", slot);
           return json({ error: subError.message }, 500);
+        }
+
+        const userIds = [...new Set((inscricoes ?? []).map((i) => i.user_id))];
+
+        const { data: prefs } = await supabase
+          .from("preferencias_notificacao")
+          .select("user_id, horarios")
+          .in("user_id", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+
+        const mapaPrefs = new Map((prefs ?? []).map((p) => [p.user_id, p.horarios ?? []]));
+
+        // horário do usuário casa com a janela atual?
+        function devoEnviar(userId: string) {
+          const horarios = mapaPrefs.get(userId) ?? ["21:30"];
+          return horarios.some((h) => {
+            const m = paraMinutos(h);
+            return m !== null && minutos - m >= 0 && minutos - m < JANELA_MINUTOS;
+          });
+        }
+
+        // marca o slot escolhido pelo usuário (não o slot arredondado do cron)
+        function slotDoUsuario(userId: string) {
+          const horarios = mapaPrefs.get(userId) ?? ["21:30"];
+          const achado = horarios.find((h) => {
+            const m = paraMinutos(h);
+            return m !== null && minutos - m >= 0 && minutos - m < JANELA_MINUTOS;
+          });
+          return achado ?? slot;
         }
 
         const { data: jaEnviadas } = await supabase
           .from("notificacoes_diarias")
-          .select("user_id")
+          .select("user_id, horario")
           .eq("data", data)
           .eq("canal", "push");
-        const enviadosHoje = new Set((jaEnviadas ?? []).map((r) => r.user_id));
+        const enviadosHoje = new Set((jaEnviadas ?? []).map((r) => `${r.user_id}|${r.horario}`));
 
         let enviados = 0;
         let removidos = 0;
         let falhas = 0;
+        let ignorados = 0;
 
         for (const inscricao of inscricoes ?? []) {
-          if (enviadosHoje.has(inscricao.user_id)) continue;
+          if (!devoEnviar(inscricao.user_id)) {
+            ignorados++;
+            continue;
+          }
+          const horarioUsuario = slotDoUsuario(inscricao.user_id);
+          if (enviadosHoje.has(`${inscricao.user_id}|${horarioUsuario}`)) continue;
           try {
             const payload = await buildPushPayload(
               {
@@ -107,10 +166,14 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
               continue;
             }
 
-            await supabase
-              .from("notificacoes_diarias")
-              .insert({ user_id: inscricao.user_id, data, canal: "push", status: "enviado" });
-            enviadosHoje.add(inscricao.user_id);
+            await supabase.from("notificacoes_diarias").insert({
+              user_id: inscricao.user_id,
+              data,
+              canal: "push",
+              status: "enviado",
+              horario: horarioUsuario,
+            });
+            enviadosHoje.add(`${inscricao.user_id}|${horarioUsuario}`);
             enviados++;
           } catch (e) {
             falhas++;
@@ -123,11 +186,12 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
           .update({
             status: "concluido",
             finalizado_em: new Date().toISOString(),
-            detalhe: `enviados=${enviados} falhas=${falhas} removidos=${removidos}`,
+            detalhe: `enviados=${enviados} falhas=${falhas} removidos=${removidos} ignorados=${ignorados}`,
           })
-          .eq("data", data);
+          .eq("data", data)
+          .eq("horario", slot);
 
-        return json({ success: true, enviados, falhas, removidos });
+        return json({ success: true, slot, enviados, falhas, removidos, ignorados });
       },
     },
   },

@@ -201,6 +201,7 @@ export type Database = {
           data: string
           detalhe: string | null
           finalizado_em: string | null
+          horario: string
           iniciado_em: string
           status: string
         }
@@ -208,6 +209,7 @@ export type Database = {
           data: string
           detalhe?: string | null
           finalizado_em?: string | null
+          horario?: string
           iniciado_em?: string
           status?: string
         }
@@ -215,6 +217,7 @@ export type Database = {
           data?: string
           detalhe?: string | null
           finalizado_em?: string | null
+          horario?: string
           iniciado_em?: string
           status?: string
         }
@@ -225,6 +228,7 @@ export type Database = {
           canal: string
           created_at: string
           data: string
+          horario: string
           id: string
           status: string
           user_id: string
@@ -233,6 +237,7 @@ export type Database = {
           canal: string
           created_at?: string
           data: string
+          horario?: string
           id?: string
           status?: string
           user_id: string
@@ -241,8 +246,30 @@ export type Database = {
           canal?: string
           created_at?: string
           data?: string
+          horario?: string
           id?: string
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      preferencias_notificacao: {
+        Row: {
+          created_at: string
+          horarios: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          horarios?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          horarios?: string[]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
