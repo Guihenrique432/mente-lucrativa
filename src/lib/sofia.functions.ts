@@ -22,16 +22,26 @@ function monthRange(offset = 0) {
   return { start: fmt(start), end: fmt(end) };
 }
 
+function mesKey(data: string) {
+  return data.slice(0, 7);
+}
+
 async function buildContext(supabase: any) {
   const cur = monthRange(0);
   const prev = monthRange(-1);
-  const [r, d, rp, dp, p, m] = await Promise.all([
+  const desde6 = monthRange(-5).start;
+
+  const [r, d, rp, dp, p, m, r6, d6, rTudo, dTudo] = await Promise.all([
     supabase.from("receitas").select("valor,categoria,data").gte("data", cur.start).lte("data", cur.end),
     supabase.from("despesas").select("valor,categoria,data").gte("data", cur.start).lte("data", cur.end),
     supabase.from("receitas").select("valor").gte("data", prev.start).lte("data", prev.end),
-    supabase.from("despesas").select("valor").gte("data", prev.start).lte("data", prev.end),
+    supabase.from("despesas").select("valor,categoria").gte("data", prev.start).lte("data", prev.end),
     supabase.from("produtos").select("nome,quantidade,custo,preco_venda"),
     supabase.from("metas").select("meta_lucro").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("receitas").select("valor,data").gte("data", desde6).lte("data", cur.end),
+    supabase.from("despesas").select("valor,data,categoria,observacao").gte("data", desde6).lte("data", cur.end),
+    supabase.from("receitas").select("valor"),
+    supabase.from("despesas").select("valor"),
   ]);
 
   const sum = (xs: any[] | null) => (xs ?? []).reduce((a, b) => a + Number(b.valor || 0), 0);
@@ -42,10 +52,62 @@ async function buildContext(supabase: any) {
   const despPrev = sum(dp.data);
   const lucroPrev = fatPrev - despPrev;
   const meta = Number(m.data?.meta_lucro ?? 0);
+  const saldoAcumulado = sum(rTudo.data) - sum(dTudo.data);
 
   const despPorCat: Record<string, number> = {};
   for (const x of d.data ?? []) despPorCat[x.categoria] = (despPorCat[x.categoria] || 0) + Number(x.valor || 0);
-  const topDesp = Object.entries(despPorCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const despPorCatPrev: Record<string, number> = {};
+  for (const x of dp.data ?? []) despPorCatPrev[x.categoria] = (despPorCatPrev[x.categoria] || 0) + Number(x.valor || 0);
+  const topDesp = Object.entries(despPorCat).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const variacoes = topDesp
+    .map(([c, v]) => {
+      const ant = despPorCatPrev[c] || 0;
+      if (ant <= 0) return `- ${c}: ${BRL(v)} (não havia gasto nessa categoria no mês passado)`;
+      const pct = ((v - ant) / ant) * 100;
+      return `- ${c}: ${BRL(v)} vs ${BRL(ant)} no mês passado (${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%)`;
+    })
+    .join("\n");
+
+  // evolução mensal (6 meses)
+  const meses: Record<string, { r: number; d: number }> = {};
+  for (const x of r6.data ?? []) {
+    const k = mesKey(x.data);
+    (meses[k] ??= { r: 0, d: 0 }).r += Number(x.valor || 0);
+  }
+  for (const x of d6.data ?? []) {
+    const k = mesKey(x.data);
+    (meses[k] ??= { r: 0, d: 0 }).d += Number(x.valor || 0);
+  }
+  const chaves = Object.keys(meses).sort();
+  const evolucao = chaves
+    .map((k) => `- ${k}: entrou ${BRL(meses[k].r)} | saiu ${BRL(meses[k].d)} | sobrou ${BRL(meses[k].r - meses[k].d)}`)
+    .join("\n");
+  const nMeses = Math.max(chaves.length, 1);
+  const receitaMedia = chaves.reduce((a, k) => a + meses[k].r, 0) / nMeses;
+  const despesaMedia = chaves.reduce((a, k) => a + meses[k].d, 0) / nMeses;
+  const poupancaMensal = receitaMedia - despesaMedia;
+
+  // compromissos recorrentes / parcelas
+  const compromissos = (d6.data ?? []).filter((x: any) =>
+    /parcel|financ|emprést|emprest|dívida|divida|cartão|cartao|assinatura|mensalidade|aluguel/i.test(
+      `${x.categoria ?? ""} ${x.observacao ?? ""}`,
+    ),
+  );
+  const compMesAtual = compromissos
+    .filter((x: any) => x.data >= cur.start)
+    .reduce((a: number, b: any) => a + Number(b.valor || 0), 0);
+
+  // despesas recorrentes: categorias presentes em 3+ meses distintos
+  const catMeses: Record<string, Set<string>> = {};
+  const catTotal: Record<string, number> = {};
+  for (const x of d6.data ?? []) {
+    (catMeses[x.categoria] ??= new Set()).add(mesKey(x.data));
+    catTotal[x.categoria] = (catTotal[x.categoria] || 0) + Number(x.valor || 0);
+  }
+  const recorrentes = Object.entries(catMeses)
+    .filter(([, s]) => s.size >= 3)
+    .map(([c, s]) => `- ${c}: ~${BRL(catTotal[c] / s.size)}/mês (aparece em ${s.size} meses)`)
+    .join("\n");
 
   const produtos = (p.data ?? []) as Array<{ nome: string; quantidade: number; custo: number; preco_venda: number }>;
   const estoqueValor = produtos.reduce((a, b) => a + Number(b.custo || 0) * Number(b.quantidade || 0), 0);
@@ -58,17 +120,35 @@ async function buildContext(supabase: any) {
     }))
     .sort((a, b) => a.margem - b.margem);
 
+  const lancamentos = (r6.data?.length ?? 0) + (d6.data?.length ?? 0);
+
   return `SNAPSHOT FINANCEIRO DO USUÁRIO (mês atual):
 - Faturamento: ${BRL(fat)}
 - Despesas: ${BRL(desp)}
 - Lucro: ${BRL(lucro)} (margem ${fat > 0 ? ((lucro / fat) * 100).toFixed(1) : "0"}%)
 - Meta de lucro: ${meta > 0 ? BRL(meta) : "não definida"}${meta > 0 ? ` (${((lucro / meta) * 100).toFixed(0)}% atingida)` : ""}
+- Saldo acumulado (todo o histórico): ${BRL(saldoAcumulado)}${saldoAcumulado < 0 ? " (NEGATIVO — dívida acumulada)" : ""}
+- Total de lançamentos nos últimos 6 meses: ${lancamentos}
 
 MÊS ANTERIOR:
 - Faturamento: ${BRL(fatPrev)} | Despesas: ${BRL(despPrev)} | Lucro: ${BRL(lucroPrev)}
 
-TOP DESPESAS POR CATEGORIA (mês atual):
-${topDesp.length ? topDesp.map(([c, v]) => `- ${c}: ${BRL(v)}`).join("\n") : "- Nenhuma despesa registrada"}
+EVOLUÇÃO MENSAL (até 6 meses):
+${evolucao || "- Sem histórico registrado"}
+
+MÉDIAS (base ${nMeses} meses):
+- Receita média: ${BRL(receitaMedia)}/mês
+- Despesa média: ${BRL(despesaMedia)}/mês
+- Capacidade de poupança: ${BRL(poupancaMensal)}/mês${poupancaMensal <= 0 ? " (não sobra dinheiro)" : ""}
+- Projeção simples de sobra em 12 meses (sem rendimentos): ${BRL(poupancaMensal * 12)}
+
+TOP DESPESAS DO MÊS E VARIAÇÃO vs MÊS ANTERIOR:
+${variacoes || "- Nenhuma despesa registrada"}
+
+DESPESAS RECORRENTES IDENTIFICADAS (categorias em 3+ meses):
+${recorrentes || "- Nenhuma identificada"}
+
+COMPROMISSOS COM PARCELAS/DÍVIDAS/ASSINATURAS NO MÊS ATUAL: ${BRL(compMesAtual)}${receitaMedia > 0 ? ` (${((compMesAtual / receitaMedia) * 100).toFixed(0)}% da receita média)` : ""}
 
 ESTOQUE:
 - Total de produtos: ${produtos.length}
@@ -77,6 +157,7 @@ ESTOQUE:
 ${margens.length ? `- 3 menores margens: ${margens.slice(0, 3).map((x) => `${x.nome} (${x.margem.toFixed(0)}%)`).join(", ")}` : ""}
 `;
 }
+
 
 export const askSofia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
