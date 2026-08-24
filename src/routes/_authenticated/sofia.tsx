@@ -24,11 +24,13 @@ export const Route = createFileRoute("/_authenticated/sofia")({
 type Msg = { role: "user" | "assistant"; content: string };
 
 const SUGESTOES = [
-  "Como está meu lucro este mês?",
-  "Onde estou gastando demais?",
-  "Vou bater minha meta?",
-  "Qual produto tem margem ruim?",
+  "Como está minha saúde financeira hoje?",
+  "Para onde meu dinheiro está indo?",
+  "Posso comprar algo de R$ 4.600?",
+  "Se eu continuar assim, como estarei em 12 meses?",
+  "Quais são meus maiores riscos financeiros?",
 ];
+
 
 function SofiaPage() {
   const ask = useServerFn(askSofia);
