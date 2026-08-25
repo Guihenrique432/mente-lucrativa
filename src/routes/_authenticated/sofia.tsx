@@ -164,20 +164,92 @@ function SofiaPage() {
   );
 }
 
+function renderInline(text: string, keyPrefix: string) {
+  // **negrito** e `código`
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter(Boolean);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={`${keyPrefix}-b${i}`} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={`${keyPrefix}-c${i}`}
+          className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <span key={`${keyPrefix}-t${i}`}>{part}</span>;
+  });
+}
+
+function FormattedText({ content }: { content: string }) {
+  const lines = content.split("\n");
+  return (
+    <div className="space-y-1.5">
+      {lines.map((raw, idx) => {
+        const line = raw.trimEnd();
+        if (!line.trim()) return <div key={idx} className="h-1.5" />;
+
+        const heading = line.match(/^(#{1,4})\s+(.*)$/);
+        if (heading) {
+          return (
+            <p
+              key={idx}
+              className="pt-1 text-[13px] font-semibold uppercase tracking-wide text-foreground"
+            >
+              {renderInline(heading[2], `h${idx}`)}
+            </p>
+          );
+        }
+
+        const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+        if (bullet) {
+          return (
+            <div key={idx} className="flex gap-2 pl-1">
+              <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-primary" />
+              <p className="flex-1">{renderInline(bullet[1], `l${idx}`)}</p>
+            </div>
+          );
+        }
+
+        const numbered = line.match(/^\s*(\d+)[.)]\s+(.*)$/);
+        if (numbered) {
+          return (
+            <div key={idx} className="flex gap-2 pl-1">
+              <span className="shrink-0 font-semibold text-primary">{numbered[1]}.</span>
+              <p className="flex-1">{renderInline(numbered[2], `n${idx}`)}</p>
+            </div>
+          );
+        }
+
+        return <p key={idx}>{renderInline(line, `p${idx}`)}</p>;
+      })}
+    </div>
+  );
+}
+
 function MessageBubble({ role, content }: { role: "user" | "assistant"; content: string }) {
   const isUser = role === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed tracking-[0.01em] ${
           isUser
-            ? "text-primary-foreground"
+            ? "whitespace-pre-wrap text-primary-foreground"
             : "bg-surface text-foreground border border-border"
         }`}
         style={isUser ? { background: "var(--gradient-hero)" } : undefined}
       >
-        {content}
+        {isUser ? content : <FormattedText content={content} />}
       </div>
     </div>
   );
 }
+
