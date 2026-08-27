@@ -133,19 +133,34 @@ function AuthPage() {
           style={{ boxShadow: "var(--shadow-card)" }}
         >
 
-          {/* Google */}
-          <button
-            onClick={handleGoogle}
-            disabled={googleLoading || loading}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary disabled:opacity-60"
-          >
-            {googleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <GoogleIcon className="h-5 w-5" />
-            )}
-            Continuar com Google
-          </button>
+          {/* Social */}
+          <div className="space-y-2.5">
+            <button
+              onClick={handleGoogle}
+              disabled={googleLoading || loading}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary disabled:opacity-60"
+            >
+              {googleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon className="h-5 w-5" />
+              )}
+              Continuar com Google
+            </button>
+
+            <button
+              onClick={handleApple}
+              disabled={appleLoading || loading}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary disabled:opacity-60"
+            >
+              {appleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <AppleIcon className="h-5 w-5" />
+              )}
+              Continuar com Apple
+            </button>
+          </div>
 
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
