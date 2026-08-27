@@ -85,6 +85,25 @@ function AuthPage() {
     }
   }
 
+  async function handleApple() {
+    setAppleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Não foi possível entrar com Apple. Tente novamente.");
+        setAppleLoading(false);
+        return;
+      }
+      if (result.redirected) return;
+      navigate({ to: "/" });
+    } catch {
+      toast.error("Não foi possível entrar com Apple.");
+      setAppleLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
