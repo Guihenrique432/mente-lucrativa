@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Mail, LogOut, Save, Sparkles, Shield, History, Loader2, X, Ticket } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { NotificacoesCard } from "@/components/NotificacoesCard";
+import { ContasConectadasCard } from "@/components/ContasConectadasCard";
+
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
 
