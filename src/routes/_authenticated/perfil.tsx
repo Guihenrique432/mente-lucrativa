@@ -225,7 +225,10 @@ function PerfilPage() {
           )}
         </section>
 
+        <ContasConectadasCard />
+
         <AdminLink />
+
 
         <button
 
