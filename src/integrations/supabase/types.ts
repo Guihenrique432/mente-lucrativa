@@ -253,6 +253,63 @@ export type Database = {
         }
         Relationships: []
       }
+      perfil_financeiro: {
+        Row: {
+          atende_clientes: boolean
+          atividade: string | null
+          created_at: string
+          forma_recebimento: string | null
+          funcionarios: number
+          modelo: string
+          observacoes: string | null
+          onboarding_concluido: boolean
+          principais_despesas: string[]
+          profissao: string | null
+          recorrencia_receita: string
+          separa_pessoal_empresa: boolean
+          tem_contratos: boolean
+          tem_estoque: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          atende_clientes?: boolean
+          atividade?: string | null
+          created_at?: string
+          forma_recebimento?: string | null
+          funcionarios?: number
+          modelo?: string
+          observacoes?: string | null
+          onboarding_concluido?: boolean
+          principais_despesas?: string[]
+          profissao?: string | null
+          recorrencia_receita?: string
+          separa_pessoal_empresa?: boolean
+          tem_contratos?: boolean
+          tem_estoque?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          atende_clientes?: boolean
+          atividade?: string | null
+          created_at?: string
+          forma_recebimento?: string | null
+          funcionarios?: number
+          modelo?: string
+          observacoes?: string | null
+          onboarding_concluido?: boolean
+          principais_despesas?: string[]
+          profissao?: string | null
+          recorrencia_receita?: string
+          separa_pessoal_empresa?: boolean
+          tem_contratos?: boolean
+          tem_estoque?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       preferencias_notificacao: {
         Row: {
           created_at: string
