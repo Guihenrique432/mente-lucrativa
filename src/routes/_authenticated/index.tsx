@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
-import { rotulos, modeloLabel, premissaProjecao, type ModeloPerfil } from "@/lib/perfil-financeiro";
+import { rotulos, modeloLabel, premissaProjecao, sugerirModelo, type ModeloPerfil } from "@/lib/perfil-financeiro";
 
 import {
   TrendingUp,
@@ -78,6 +78,7 @@ function Dashboard() {
   const [dividaAnterior, setDividaAnterior] = useState<number>(0);
   const [modelo, setModelo] = useState<ModeloPerfil>("outro");
   const [profissao, setProfissao] = useState<string>("");
+  const [sugestaoOculta, setSugestaoOculta] = useState(false);
 
 
   useEffect(() => {
@@ -205,6 +206,23 @@ function Dashboard() {
   const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
   const rot = useMemo(() => rotulos(modelo), [modelo]);
 
+  const sugestao = useMemo(() => {
+    if (sugestaoOculta) return null;
+    const textos = [...receitas, ...despesas].map((x) => x.categoria ?? "");
+    const s = sugerirModelo(textos);
+    return s && s !== modelo ? s : null;
+  }, [receitas, despesas, modelo, sugestaoOculta]);
+
+  async function aplicarSugestao(novo: ModeloPerfil) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase
+      .from("perfil_financeiro")
+      .upsert({ user_id: u.user.id, modelo: novo }, { onConflict: "user_id" });
+    setModelo(novo);
+    setSugestaoOculta(true);
+  }
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <header
@@ -319,6 +337,34 @@ function Dashboard() {
         </section>
       )}
 
+
+      {sugestao && (
+        <section className="mt-4 px-5">
+          <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
+            <p className="text-sm font-semibold text-foreground">
+              Parece que seu trabalho é: {modeloLabel(sugestao)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Notei isso pelos seus lançamentos. Quer configurar seu perfil assim? Nada é alterado no seu histórico.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => aplicarSugestao(sugestao)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-primary-foreground"
+                style={{ background: "var(--gradient-hero)" }}
+              >
+                Sim, configurar
+              </button>
+              <button
+                onClick={() => setSugestaoOculta(true)}
+                className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-muted-foreground"
+              >
+                Agora não
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mt-5 px-5">
         <div className="rounded-2xl border border-border bg-card p-4">
