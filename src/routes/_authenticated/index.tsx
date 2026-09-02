@@ -203,6 +203,7 @@ function Dashboard() {
   }, [receitas, despesas, receitasPrev, despesasPrev, produtos, saidasMes, meta]);
 
   const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
+  const rot = useMemo(() => rotulos(modelo), [modelo]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -216,6 +217,10 @@ function Dashboard() {
               Olá{nome ? `, ${nome}` : ""} 👋
             </p>
             <h1 className="mt-1 text-2xl font-bold">Visão geral do seu lucro real</h1>
+            <p className="mt-1 text-[11px] opacity-70">
+              {profissao ? `${profissao} · ` : ""}
+              {modeloLabel(modelo)}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -237,7 +242,7 @@ function Dashboard() {
         </div>
 
         <div className="mt-7">
-          <p className="text-sm opacity-80">Lucro deste mês</p>
+          <p className="text-sm opacity-80">{rot.resultado} deste mês</p>
           <div className="mt-1 flex items-end gap-3">
             <span className="text-4xl font-bold tracking-tight">{BRL(stats.lucro)}</span>
             {stats.faturamento > 0 && (
@@ -316,12 +321,52 @@ function Dashboard() {
 
 
       <section className="mt-5 px-5">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Indicadores do seu perfil
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">{rot.volumeLabel}</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">{stats.volume}</p>
+            </div>
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">{rot.ticketLabel}</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.ticketMedio)}</p>
+            </div>
+            {(modelo === "comercio" || modelo === "estoque" || modelo === "alimentacao") && (
+              <div className="rounded-xl bg-surface px-3 py-2.5">
+                <p className="text-[11px] text-muted-foreground">Dinheiro parado no estoque</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.estoqueValor)}</p>
+              </div>
+            )}
+            {modelo === "clt" && (
+              <div className="rounded-xl bg-surface px-3 py-2.5">
+                <p className="text-[11px] text-muted-foreground">Capacidade de economia</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(Math.max(0, stats.lucro))}</p>
+              </div>
+            )}
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">Margem do mês</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">
+                {stats.faturamento > 0 ? `${stats.margem.toFixed(1)}%` : "—"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            {premissaProjecao(modelo)}, seu resultado em 12 meses seria de aproximadamente{" "}
+            {BRL(stats.lucro * 12)}. É uma projeção baseada apenas no mês atual, não uma garantia.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
           <Link to="/receitas">
-            <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
+            <KpiCard icon={<Wallet className="h-4 w-4" />} label={rot.entrada} value={BRL(stats.faturamento)} tone="accent" />
           </Link>
           <Link to="/despesas">
-            <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
+            <KpiCard icon={<Receipt className="h-4 w-4" />} label={rot.saida} value={BRL(stats.despesas)} tone="danger" />
           </Link>
           <Link to="/metas">
             <KpiCard
