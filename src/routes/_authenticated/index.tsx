@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { rotulos, modeloLabel, premissaProjecao, sugerirModelo, type ModeloPerfil } from "@/lib/perfil-financeiro";
 
 import {
   TrendingUp,
@@ -75,6 +76,9 @@ function Dashboard() {
   const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
   const [dividaAnterior, setDividaAnterior] = useState<number>(0);
+  const [modelo, setModelo] = useState<ModeloPerfil>("outro");
+  const [profissao, setProfissao] = useState<string>("");
+  const [sugestaoOculta, setSugestaoOculta] = useState(false);
 
 
   useEffect(() => {
@@ -91,7 +95,7 @@ function Dashboard() {
     async function load() {
       const cur = monthRange();
       const prev = prevMonthRange();
-      const [r, d, rp, dp, p, m, mov, rAnt, dAnt] = await Promise.all([
+      const [r, d, rp, dp, p, m, mov, rAnt, dAnt, pf] = await Promise.all([
         supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
@@ -101,6 +105,7 @@ function Dashboard() {
         supabase.from("movimentacoes_estoque").select("produto_id,quantidade,tipo,data").eq("tipo", "saida").gte("data", cur.start).lte("data", cur.end + "T23:59:59"),
         supabase.from("receitas").select("valor").lt("data", cur.start),
         supabase.from("despesas").select("valor").lt("data", cur.start),
+        supabase.from("perfil_financeiro").select("modelo,profissao").maybeSingle(),
       ]);
       if (cancelled) return;
       setReceitas((r.data as Receita[]) ?? []);
@@ -114,6 +119,10 @@ function Dashboard() {
         (xs ?? []).reduce((a, b) => a + Number(b.valor || 0), 0);
       const saldoAnterior = sumV(rAnt.data as { valor: number }[]) - sumV(dAnt.data as { valor: number }[]);
       setDividaAnterior(saldoAnterior < 0 ? Math.abs(saldoAnterior) : 0);
+      if (pf.data) {
+        setModelo(((pf.data as { modelo?: string }).modelo as ModeloPerfil) ?? "outro");
+        setProfissao((pf.data as { profissao?: string | null }).profissao ?? "");
+      }
       setLoading(false);
 
     }
@@ -169,7 +178,12 @@ function Dashboard() {
     const ritmoDia = cur.today > 0 ? lucro / cur.today : 0;
     const faltaMeta = Math.max(0, meta - lucro);
 
+    const volume = receitas.length;
+    const ticketMedio = volume > 0 ? faturamento / volume : 0;
+
     return {
+      volume,
+      ticketMedio,
       faturamento,
       despesas: desp,
       lucro,
@@ -190,6 +204,24 @@ function Dashboard() {
   }, [receitas, despesas, receitasPrev, despesasPrev, produtos, saidasMes, meta]);
 
   const radar = useMemo(() => buildRadar(stats, meta), [stats, meta]);
+  const rot = useMemo(() => rotulos(modelo), [modelo]);
+
+  const sugestao = useMemo(() => {
+    if (sugestaoOculta) return null;
+    const textos = [...receitas, ...despesas].map((x) => x.categoria ?? "");
+    const s = sugerirModelo(textos);
+    return s && s !== modelo ? s : null;
+  }, [receitas, despesas, modelo, sugestaoOculta]);
+
+  async function aplicarSugestao(novo: ModeloPerfil) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    await supabase
+      .from("perfil_financeiro")
+      .upsert({ user_id: u.user.id, modelo: novo }, { onConflict: "user_id" });
+    setModelo(novo);
+    setSugestaoOculta(true);
+  }
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -203,6 +235,10 @@ function Dashboard() {
               Olá{nome ? `, ${nome}` : ""} 👋
             </p>
             <h1 className="mt-1 text-2xl font-bold">Visão geral do seu lucro real</h1>
+            <p className="mt-1 text-[11px] opacity-70">
+              {profissao ? `${profissao} · ` : ""}
+              {modeloLabel(modelo)}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -224,7 +260,7 @@ function Dashboard() {
         </div>
 
         <div className="mt-7">
-          <p className="text-sm opacity-80">Lucro deste mês</p>
+          <p className="text-sm opacity-80">{rot.resultado} deste mês</p>
           <div className="mt-1 flex items-end gap-3">
             <span className="text-4xl font-bold tracking-tight">{BRL(stats.lucro)}</span>
             {stats.faturamento > 0 && (
@@ -302,13 +338,81 @@ function Dashboard() {
       )}
 
 
+      {sugestao && (
+        <section className="mt-4 px-5">
+          <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
+            <p className="text-sm font-semibold text-foreground">
+              Parece que seu trabalho é: {modeloLabel(sugestao)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Notei isso pelos seus lançamentos. Quer configurar seu perfil assim? Nada é alterado no seu histórico.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => aplicarSugestao(sugestao)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-primary-foreground"
+                style={{ background: "var(--gradient-hero)" }}
+              >
+                Sim, configurar
+              </button>
+              <button
+                onClick={() => setSugestaoOculta(true)}
+                className="rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-muted-foreground"
+              >
+                Agora não
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mt-5 px-5">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Indicadores do seu perfil
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">{rot.volumeLabel}</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">{stats.volume}</p>
+            </div>
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">{rot.ticketLabel}</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.ticketMedio)}</p>
+            </div>
+            {(modelo === "comercio" || modelo === "estoque" || modelo === "alimentacao") && (
+              <div className="rounded-xl bg-surface px-3 py-2.5">
+                <p className="text-[11px] text-muted-foreground">Dinheiro parado no estoque</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.estoqueValor)}</p>
+              </div>
+            )}
+            {modelo === "clt" && (
+              <div className="rounded-xl bg-surface px-3 py-2.5">
+                <p className="text-[11px] text-muted-foreground">Capacidade de economia</p>
+                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(Math.max(0, stats.lucro))}</p>
+              </div>
+            )}
+            <div className="rounded-xl bg-surface px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">Margem do mês</p>
+              <p className="mt-0.5 text-lg font-bold text-foreground">
+                {stats.faturamento > 0 ? `${stats.margem.toFixed(1)}%` : "—"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            {premissaProjecao(modelo)}, seu resultado em 12 meses seria de aproximadamente{" "}
+            {BRL(stats.lucro * 12)}. É uma projeção baseada apenas no mês atual, não uma garantia.
+          </p>
+        </div>
+      </section>
+
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
           <Link to="/receitas">
-            <KpiCard icon={<Wallet className="h-4 w-4" />} label="Faturamento" value={BRL(stats.faturamento)} tone="accent" />
+            <KpiCard icon={<Wallet className="h-4 w-4" />} label={rot.entrada} value={BRL(stats.faturamento)} tone="accent" />
           </Link>
           <Link to="/despesas">
-            <KpiCard icon={<Receipt className="h-4 w-4" />} label="Despesas" value={BRL(stats.despesas)} tone="danger" />
+            <KpiCard icon={<Receipt className="h-4 w-4" />} label={rot.saida} value={BRL(stats.despesas)} tone="danger" />
           </Link>
           <Link to="/metas">
             <KpiCard

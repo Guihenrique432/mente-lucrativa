@@ -5,6 +5,7 @@ import { ArrowLeft, User, Mail, LogOut, Save, Sparkles, Shield, History, Loader2
 import { BottomNav } from "@/components/BottomNav";
 import { NotificacoesCard } from "@/components/NotificacoesCard";
 import { ContasConectadasCard } from "@/components/ContasConectadasCard";
+import { PerfilFinanceiroCard } from "@/components/PerfilFinanceiroCard";
 
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
@@ -141,6 +142,8 @@ function PerfilPage() {
       </header>
 
       <main className="mx-auto -mt-10 max-w-md space-y-4 px-4">
+
+        <PerfilFinanceiroCard />
 
         <NotificacoesCard />
 
