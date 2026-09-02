@@ -143,6 +143,8 @@ function PerfilPage() {
 
       <main className="mx-auto -mt-10 max-w-md space-y-4 px-4">
 
+        <PerfilFinanceiroCard />
+
         <NotificacoesCard />
 
 
