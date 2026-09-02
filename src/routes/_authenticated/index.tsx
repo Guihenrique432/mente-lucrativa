@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { rotulos, modeloLabel, premissaProjecao, type ModeloPerfil } from "@/lib/perfil-financeiro";
 
 import {
   TrendingUp,
@@ -75,6 +76,8 @@ function Dashboard() {
   const [saidasMes, setSaidasMes] = useState<MovSaida[]>([]);
   const [meta, setMeta] = useState<number>(0);
   const [dividaAnterior, setDividaAnterior] = useState<number>(0);
+  const [modelo, setModelo] = useState<ModeloPerfil>("outro");
+  const [profissao, setProfissao] = useState<string>("");
 
 
   useEffect(() => {
@@ -91,7 +94,7 @@ function Dashboard() {
     async function load() {
       const cur = monthRange();
       const prev = prevMonthRange();
-      const [r, d, rp, dp, p, m, mov, rAnt, dAnt] = await Promise.all([
+      const [r, d, rp, dp, p, m, mov, rAnt, dAnt, pf] = await Promise.all([
         supabase.from("receitas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("despesas").select("valor,data,categoria").gte("data", cur.start).lte("data", cur.end),
         supabase.from("receitas").select("valor,data,categoria").gte("data", prev.start).lte("data", prev.end),
@@ -101,6 +104,7 @@ function Dashboard() {
         supabase.from("movimentacoes_estoque").select("produto_id,quantidade,tipo,data").eq("tipo", "saida").gte("data", cur.start).lte("data", cur.end + "T23:59:59"),
         supabase.from("receitas").select("valor").lt("data", cur.start),
         supabase.from("despesas").select("valor").lt("data", cur.start),
+        supabase.from("perfil_financeiro").select("modelo,profissao").maybeSingle(),
       ]);
       if (cancelled) return;
       setReceitas((r.data as Receita[]) ?? []);
@@ -114,6 +118,10 @@ function Dashboard() {
         (xs ?? []).reduce((a, b) => a + Number(b.valor || 0), 0);
       const saldoAnterior = sumV(rAnt.data as { valor: number }[]) - sumV(dAnt.data as { valor: number }[]);
       setDividaAnterior(saldoAnterior < 0 ? Math.abs(saldoAnterior) : 0);
+      if (pf.data) {
+        setModelo(((pf.data as { modelo?: string }).modelo as ModeloPerfil) ?? "outro");
+        setProfissao((pf.data as { profissao?: string | null }).profissao ?? "");
+      }
       setLoading(false);
 
     }
@@ -169,7 +177,12 @@ function Dashboard() {
     const ritmoDia = cur.today > 0 ? lucro / cur.today : 0;
     const faltaMeta = Math.max(0, meta - lucro);
 
+    const volume = receitas.length;
+    const ticketMedio = volume > 0 ? faturamento / volume : 0;
+
     return {
+      volume,
+      ticketMedio,
       faturamento,
       despesas: desp,
       lucro,
