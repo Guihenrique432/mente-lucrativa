@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
-import { rotulos, modeloLabel, premissaProjecao, sugerirModelo, type ModeloPerfil } from "@/lib/perfil-financeiro";
+import { rotulos, modeloLabel, sugerirModelo, type ModeloPerfil } from "@/lib/perfil-financeiro";
 
 import {
   TrendingUp,
