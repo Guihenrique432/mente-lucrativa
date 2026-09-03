@@ -366,45 +366,8 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="mt-5 px-5">
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Indicadores do seu perfil
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-surface px-3 py-2.5">
-              <p className="text-[11px] text-muted-foreground">{rot.volumeLabel}</p>
-              <p className="mt-0.5 text-lg font-bold text-foreground">{stats.volume}</p>
-            </div>
-            <div className="rounded-xl bg-surface px-3 py-2.5">
-              <p className="text-[11px] text-muted-foreground">{rot.ticketLabel}</p>
-              <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.ticketMedio)}</p>
-            </div>
-            {(modelo === "comercio" || modelo === "estoque" || modelo === "alimentacao") && (
-              <div className="rounded-xl bg-surface px-3 py-2.5">
-                <p className="text-[11px] text-muted-foreground">Dinheiro parado no estoque</p>
-                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(stats.estoqueValor)}</p>
-              </div>
-            )}
-            {modelo === "clt" && (
-              <div className="rounded-xl bg-surface px-3 py-2.5">
-                <p className="text-[11px] text-muted-foreground">Capacidade de economia</p>
-                <p className="mt-0.5 text-lg font-bold text-foreground">{BRL(Math.max(0, stats.lucro))}</p>
-              </div>
-            )}
-            <div className="rounded-xl bg-surface px-3 py-2.5">
-              <p className="text-[11px] text-muted-foreground">Margem do mês</p>
-              <p className="mt-0.5 text-lg font-bold text-foreground">
-                {stats.faturamento > 0 ? `${stats.margem.toFixed(1)}%` : "—"}
-              </p>
-            </div>
-          </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            {premissaProjecao(modelo)}, seu resultado em 12 meses seria de aproximadamente{" "}
-            {BRL(stats.lucro * 12)}. É uma projeção baseada apenas no mês atual, não uma garantia.
-          </p>
-        </div>
-      </section>
+
+
 
       <section className="mt-5 px-5">
         <div className="grid grid-cols-2 gap-3">
