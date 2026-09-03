@@ -234,6 +234,10 @@ function PerfilPage() {
 
         <AdminLink />
 
+        <IndicadoresPerfilCard />
+
+
+
 
         <button
 
