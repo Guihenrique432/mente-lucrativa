@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      contratos: {
+        Row: {
+          cliente: string
+          created_at: string
+          custo_estimado: number
+          data_fim: string | null
+          data_inicio: string
+          dia_vencimento: number | null
+          id: string
+          observacao: string | null
+          recorrente: boolean
+          situacao: string
+          tipo: string
+          titulo: string
+          updated_at: string
+          user_id: string
+          valor_contratado: number
+          valor_mensal: number
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          custo_estimado?: number
+          data_fim?: string | null
+          data_inicio?: string
+          dia_vencimento?: number | null
+          id?: string
+          observacao?: string | null
+          recorrente?: boolean
+          situacao?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id: string
+          valor_contratado?: number
+          valor_mensal?: number
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          custo_estimado?: number
+          data_fim?: string | null
+          data_inicio?: string
+          dia_vencimento?: number | null
+          id?: string
+          observacao?: string | null
+          recorrente?: boolean
+          situacao?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+          valor_contratado?: number
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
+      contratos_recebimentos: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          updated_at: string
+          user_id: string
+          valor: number
+          vencimento: string | null
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          user_id: string
+          valor: number
+          vencimento?: string | null
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          updated_at?: string
+          user_id?: string
+          valor?: number
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_recebimentos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       despesas: {
         Row: {
           categoria: string

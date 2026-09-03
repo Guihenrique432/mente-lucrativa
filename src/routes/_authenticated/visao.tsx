@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { modeloLabel, premissaProjecao, type ModeloPerfil } from "@/lib/perfil-financeiro";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle, Upload } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
@@ -47,6 +49,24 @@ function VisaoPage() {
   const [res, setRes] = useState<(ResultadoSimulacao & { analise: string }) | null>(null);
   const [cenarioAtivo, setCenarioAtivo] = useState("agora");
   const [importar, setImportar] = useState(false);
+  const [modelo, setModelo] = useState<ModeloPerfil>("outro");
+  const [profissao, setProfissao] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("perfil_financeiro")
+      .select("modelo,profissao")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setModelo(((data as { modelo?: string }).modelo as ModeloPerfil) ?? "outro");
+        setProfissao((data as { profissao?: string | null }).profissao ?? "");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function rodar(e: React.FormEvent) {
     e.preventDefault();
@@ -118,6 +138,19 @@ function VisaoPage() {
           Traga seus lançamentos reais para a projeção deixar de mostrar valores zerados.
         </p>
 
+
+        <section className="mt-4 rounded-2xl border border-border bg-surface p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Premissa do seu perfil
+          </p>
+          <p className="mt-1 text-xs text-foreground">
+            {profissao ? `${profissao} · ` : ""}
+            {modeloLabel(modelo)}
+          </p>
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            {premissaProjecao(modelo)}, as projeções abaixo seguem esse ritmo. É uma estimativa, não uma garantia.
+          </p>
+        </section>
 
         <form onSubmit={rodar} className="mt-5 space-y-3 rounded-2xl border border-border bg-card p-4">
           <p className="text-sm font-semibold text-foreground">Simule uma decisão</p>
@@ -307,6 +340,10 @@ function VisaoPage() {
                 <p className="text-xs font-semibold text-foreground">Hipóteses usadas nesta projeção</p>
               </div>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-[11px] text-muted-foreground">
+                <li>
+                  {premissaProjecao(modelo)} ({modeloLabel(modelo)}
+                  {profissao ? ` — ${profissao}` : ""}).
+                </li>
                 {res.hipoteses.map((h, i) => (
                   <li key={i}>{h}</li>
                 ))}

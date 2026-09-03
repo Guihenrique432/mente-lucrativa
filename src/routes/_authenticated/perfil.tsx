@@ -6,6 +6,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { NotificacoesCard } from "@/components/NotificacoesCard";
 import { ContasConectadasCard } from "@/components/ContasConectadasCard";
 import { PerfilFinanceiroCard } from "@/components/PerfilFinanceiroCard";
+import { IndicadoresPerfilCard } from "@/components/IndicadoresPerfilCard";
+
 
 import { amIAdmin } from "@/lib/invites.functions";
 import { toast } from "sonner";
@@ -233,6 +235,10 @@ function PerfilPage() {
         <ContasConectadasCard />
 
         <AdminLink />
+
+        <IndicadoresPerfilCard />
+
+
 
 
         <button
