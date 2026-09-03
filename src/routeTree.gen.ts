@@ -26,6 +26,7 @@ import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedDespesasRouteImport } from './routes/_authenticated/despesas'
+import { Route as AuthenticatedContratosRouteImport } from './routes/_authenticated/contratos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicHooksNotificacaoDiariaRouteImport } from './routes/api/public/hooks/notificacao-diaria'
 
@@ -113,6 +114,11 @@ const AuthenticatedDespesasRoute = AuthenticatedDespesasRouteImport.update({
   path: '/despesas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContratosRoute = AuthenticatedContratosRouteImport.update({
+  id: '/contratos',
+  path: '/contratos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/contratos': typeof AuthenticatedContratosRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/historico': typeof AuthenticatedHistoricoRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/contratos': typeof AuthenticatedContratosRoute
   '/despesas': typeof AuthenticatedDespesasRoute
   '/estoque': typeof AuthenticatedEstoqueRoute
   '/historico': typeof AuthenticatedHistoricoRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/contratos': typeof AuthenticatedContratosRoute
   '/_authenticated/despesas': typeof AuthenticatedDespesasRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
+    | '/contratos'
     | '/despesas'
     | '/estoque'
     | '/historico'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
+    | '/contratos'
     | '/despesas'
     | '/estoque'
     | '/historico'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin'
+    | '/_authenticated/contratos'
     | '/_authenticated/despesas'
     | '/_authenticated/estoque'
     | '/_authenticated/historico'
@@ -382,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDespesasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/contratos': {
+      id: '/_authenticated/contratos'
+      path: '/contratos'
+      fullPath: '/contratos'
+      preLoaderRoute: typeof AuthenticatedContratosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -401,6 +420,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedContratosRoute: typeof AuthenticatedContratosRoute
   AuthenticatedDespesasRoute: typeof AuthenticatedDespesasRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
@@ -415,6 +435,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedContratosRoute: AuthenticatedContratosRoute,
   AuthenticatedDespesasRoute: AuthenticatedDespesasRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
