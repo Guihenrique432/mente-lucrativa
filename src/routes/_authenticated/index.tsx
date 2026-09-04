@@ -21,6 +21,8 @@ import {
   Plus,
   Boxes,
   CheckCircle2,
+  FileSignature,
+
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
