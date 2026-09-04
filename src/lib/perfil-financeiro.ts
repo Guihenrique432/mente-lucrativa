@@ -30,7 +30,72 @@ export type PerfilFinanceiro = {
   separa_pessoal_empresa: boolean;
   observacoes: string | null;
   onboarding_concluido: boolean;
+  /* ---- contexto fiscal (nunca inferido, só informado pelo usuário) ---- */
+  regime_tributario: RegimeTributario;
+  anexo_simples: string | null;
+  cnae: string | null;
+  natureza_juridica: string | null;
+  tipos_receita: string[];
+  municipio: string | null;
+  uf: string | null;
+  aliquota_iss: number | null;
+  tem_folha: boolean;
+  folha_mensal: number;
+  pro_labore: number;
+  possui_creditos: boolean;
+  creditos_deducoes: string | null;
+  beneficios_fiscais: string | null;
+  faturamento_12m: number | null;
+  periodo_apuracao: string;
+  tem_contador: boolean;
 };
+
+export type RegimeTributario =
+  | "nao_informado"
+  | "mei"
+  | "simples"
+  | "presumido"
+  | "real"
+  | "pessoa_fisica"
+  | "isento";
+
+export const REGIMES: { value: RegimeTributario; label: string; desc: string }[] = [
+  { value: "nao_informado", label: "Não sei / não informado", desc: "A Sofia não vai estimar tributos" },
+  { value: "mei", label: "MEI", desc: "Microempreendedor individual (DAS fixo)" },
+  { value: "simples", label: "Simples Nacional", desc: "Recolhimento unificado por anexo" },
+  { value: "presumido", label: "Lucro Presumido", desc: "Base de cálculo presumida por atividade" },
+  { value: "real", label: "Lucro Real", desc: "Tributos sobre o lucro efetivo" },
+  { value: "pessoa_fisica", label: "Pessoa física / autônomo sem CNPJ", desc: "Carnê-leão, INSS, ISS autônomo" },
+  { value: "isento", label: "Não tributado / isento", desc: "Sem tributação sobre a atividade" },
+];
+
+export const ANEXOS_SIMPLES = [
+  "Anexo I – Comércio",
+  "Anexo II – Indústria",
+  "Anexo III – Serviços",
+  "Anexo IV – Serviços (com CPP à parte)",
+  "Anexo V – Serviços",
+  "Não sei",
+];
+
+export const TIPOS_RECEITA = [
+  "Venda de mercadoria",
+  "Prestação de serviço",
+  "Serviço com material aplicado",
+  "Contrato recorrente / mensalidade",
+  "Comissão / intermediação",
+  "Aluguel",
+  "Salário (CLT)",
+  "Venda para fora do município",
+  "Venda para fora do estado",
+  "Exportação",
+];
+
+export const PERIODOS_APURACAO = ["mensal", "trimestral", "anual"];
+
+export function regimeLabel(r: string) {
+  return REGIMES.find((x) => x.value === r)?.label ?? "Não informado";
+}
 
 export const MODELOS: {
   value: ModeloPerfil;
@@ -143,7 +208,51 @@ export const perfilVazio = (userId: string): PerfilFinanceiro => ({
   separa_pessoal_empresa: false,
   observacoes: null,
   onboarding_concluido: false,
+  regime_tributario: "nao_informado",
+  anexo_simples: null,
+  cnae: null,
+  natureza_juridica: null,
+  tipos_receita: [],
+  municipio: null,
+  uf: null,
+  aliquota_iss: null,
+  tem_folha: false,
+  folha_mensal: 0,
+  pro_labore: 0,
+  possui_creditos: false,
+  creditos_deducoes: null,
+  beneficios_fiscais: null,
+  faturamento_12m: null,
+  periodo_apuracao: "mensal",
+  tem_contador: false,
 });
+
+/**
+ * Confiança FISCAL: depende só dos dados fiscais realmente informados.
+ * Nunca deduz regime, alíquota ou enquadramento.
+ */
+export function confiancaFiscal(p: Partial<PerfilFinanceiro> | null) {
+  const faltando: string[] = [];
+  const regime = p?.regime_tributario ?? "nao_informado";
+  if (!p) faltando.push("perfil financeiro não configurado");
+  if (regime === "nao_informado") faltando.push("regime tributário");
+  if (!p?.atividade && !p?.profissao) faltando.push("atividade econômica");
+  if (!p?.cnae) faltando.push("CNAE");
+  if (!p?.tipos_receita?.length) faltando.push("tipo de receita");
+  if (!p?.municipio || !p?.uf) faltando.push("município/estado");
+  if (regime === "simples" && !p?.anexo_simples) faltando.push("anexo do Simples Nacional");
+  if (p?.tem_folha && !p?.folha_mensal) faltando.push("valor da folha de pagamento");
+  if (regime === "simples" && p?.faturamento_12m == null) faltando.push("faturamento dos últimos 12 meses (define a faixa do Simples)");
+
+  const criticoFaltando = regime === "nao_informado" || (!p?.atividade && !p?.profissao) || !p?.tipos_receita?.length;
+  const nivel = criticoFaltando
+    ? "🔴 Sem dados suficientes para análise fiscal confiável"
+    : faltando.length
+      ? "🟡 Faltam informações fiscais"
+      : "🟢 Dados suficientes para uma análise fiscal preliminar";
+
+  return { nivel, faltando };
+}
 
 export function modeloLabel(modelo: ModeloPerfil) {
   return MODELOS.find((m) => m.value === modelo)?.label ?? "Outro tipo de trabalho";
