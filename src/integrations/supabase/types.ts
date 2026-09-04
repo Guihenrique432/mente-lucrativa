@@ -356,56 +356,107 @@ export type Database = {
       }
       perfil_financeiro: {
         Row: {
+          aliquota_iss: number | null
+          anexo_simples: string | null
           atende_clientes: boolean
           atividade: string | null
+          beneficios_fiscais: string | null
+          cnae: string | null
           created_at: string
+          creditos_deducoes: string | null
+          faturamento_12m: number | null
+          folha_mensal: number
           forma_recebimento: string | null
           funcionarios: number
           modelo: string
+          municipio: string | null
+          natureza_juridica: string | null
           observacoes: string | null
           onboarding_concluido: boolean
+          periodo_apuracao: string
+          possui_creditos: boolean
           principais_despesas: string[]
+          pro_labore: number
           profissao: string | null
           recorrencia_receita: string
+          regime_tributario: string
           separa_pessoal_empresa: boolean
+          tem_contador: boolean
           tem_contratos: boolean
           tem_estoque: boolean
+          tem_folha: boolean
+          tipos_receita: string[]
+          uf: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          aliquota_iss?: number | null
+          anexo_simples?: string | null
           atende_clientes?: boolean
           atividade?: string | null
+          beneficios_fiscais?: string | null
+          cnae?: string | null
           created_at?: string
+          creditos_deducoes?: string | null
+          faturamento_12m?: number | null
+          folha_mensal?: number
           forma_recebimento?: string | null
           funcionarios?: number
           modelo?: string
+          municipio?: string | null
+          natureza_juridica?: string | null
           observacoes?: string | null
           onboarding_concluido?: boolean
+          periodo_apuracao?: string
+          possui_creditos?: boolean
           principais_despesas?: string[]
+          pro_labore?: number
           profissao?: string | null
           recorrencia_receita?: string
+          regime_tributario?: string
           separa_pessoal_empresa?: boolean
+          tem_contador?: boolean
           tem_contratos?: boolean
           tem_estoque?: boolean
+          tem_folha?: boolean
+          tipos_receita?: string[]
+          uf?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          aliquota_iss?: number | null
+          anexo_simples?: string | null
           atende_clientes?: boolean
           atividade?: string | null
+          beneficios_fiscais?: string | null
+          cnae?: string | null
           created_at?: string
+          creditos_deducoes?: string | null
+          faturamento_12m?: number | null
+          folha_mensal?: number
           forma_recebimento?: string | null
           funcionarios?: number
           modelo?: string
+          municipio?: string | null
+          natureza_juridica?: string | null
           observacoes?: string | null
           onboarding_concluido?: boolean
+          periodo_apuracao?: string
+          possui_creditos?: boolean
           principais_despesas?: string[]
+          pro_labore?: number
           profissao?: string | null
           recorrencia_receita?: string
+          regime_tributario?: string
           separa_pessoal_empresa?: boolean
+          tem_contador?: boolean
           tem_contratos?: boolean
           tem_estoque?: boolean
+          tem_folha?: boolean
+          tipos_receita?: string[]
+          uf?: string | null
           updated_at?: string
           user_id?: string
         }
