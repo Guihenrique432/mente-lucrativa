@@ -435,6 +435,25 @@ function Dashboard() {
         </Link>
       </section>
 
+      <section className="mt-3 px-5">
+        <Link
+          to="/contratos"
+          className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition hover:border-accent/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+              <FileSignature className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Contratos e projetos</p>
+              <p className="text-xs text-muted-foreground">Combinado x recebido e o que está atrasado</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-accent">Abrir →</span>
+        </Link>
+      </section>
+
+
 
 
 
