@@ -1,0 +1,18 @@
+ALTER TABLE public.perfil_financeiro
+  ADD COLUMN IF NOT EXISTS regime_tributario text NOT NULL DEFAULT 'nao_informado',
+  ADD COLUMN IF NOT EXISTS anexo_simples text,
+  ADD COLUMN IF NOT EXISTS cnae text,
+  ADD COLUMN IF NOT EXISTS natureza_juridica text,
+  ADD COLUMN IF NOT EXISTS tipos_receita text[] NOT NULL DEFAULT '{}'::text[],
+  ADD COLUMN IF NOT EXISTS municipio text,
+  ADD COLUMN IF NOT EXISTS uf text,
+  ADD COLUMN IF NOT EXISTS aliquota_iss numeric,
+  ADD COLUMN IF NOT EXISTS tem_folha boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS folha_mensal numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pro_labore numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS possui_creditos boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS creditos_deducoes text,
+  ADD COLUMN IF NOT EXISTS beneficios_fiscais text,
+  ADD COLUMN IF NOT EXISTS faturamento_12m numeric,
+  ADD COLUMN IF NOT EXISTS periodo_apuracao text NOT NULL DEFAULT 'mensal',
+  ADD COLUMN IF NOT EXISTS tem_contador boolean NOT NULL DEFAULT false;
