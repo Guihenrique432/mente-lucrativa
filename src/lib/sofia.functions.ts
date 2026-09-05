@@ -1,7 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { fluxoFinanceiro, modeloLabel, premissaProjecao, type ModeloPerfil } from "@/lib/perfil-financeiro";
+import {
+  confiancaFiscal,
+  fluxoFinanceiro,
+  modeloLabel,
+  premissaProjecao,
+  regimeLabel,
+  type ModeloPerfil,
+} from "@/lib/perfil-financeiro";
 
 /** Bloco de contexto profissional do usuário (nunca inventado). */
 async function buildPerfil(supabase: any) {
@@ -9,9 +16,15 @@ async function buildPerfil(supabase: any) {
   if (!data) {
     return `PERFIL DO USUÁRIO
 - Perfil financeiro ainda NÃO configurado. Você não sabe a profissão nem o modelo de negócio dele.
-- Não invente profissão nem tipo de negócio. Quando o contexto importar para a resposta, pergunte de forma simples ("Como você trabalha? Serviços, atendimentos, loja com estoque, contratos ou CLT?") e sugira configurar em Perfil → Meu perfil financeiro.`;
+- Não invente profissão nem tipo de negócio. Quando o contexto importar para a resposta, pergunte de forma simples ("Como você trabalha? Serviços, atendimentos, loja com estoque, contratos ou CLT?") e sugira configurar em Perfil → Meu perfil financeiro.
+
+CONTEXTO FISCAL
+- CONFIANÇA FISCAL: 🔴 Sem dados suficientes para análise fiscal confiável.
+- Nenhum dado fiscal informado: regime tributário, atividade/CNAE, tipo de receita, município/estado, folha, créditos e benefícios são DESCONHECIDOS.
+- É PROIBIDO estimar qualquer tributo, alíquota, enquadramento ou economia fiscal. Responda: "Não tenho informações suficientes para determinar esse cálculo com segurança." e peça os dados que faltam (em Perfil → Meu perfil financeiro → Contexto fiscal).`;
   }
   const modelo = (data.modelo ?? "outro") as ModeloPerfil;
+  const fiscal = confiancaFiscal(data);
   return `PERFIL DO USUÁRIO (informado por ele mesmo — use para contextualizar TODA a análise)
 - Profissão/atividade: ${data.profissao || "não informada"}
 - Modelo de trabalho: ${modeloLabel(modelo)}
@@ -25,7 +38,25 @@ async function buildPerfil(supabase: any) {
 - Principais despesas declaradas: ${(data.principais_despesas ?? []).join(", ") || "não informadas"}
 - Separa pessoal de empresa: ${data.separa_pessoal_empresa ? "sim" : "não"}
 - Observações do usuário: ${data.observacoes || "nenhuma"}
-- Premissa a usar em projeções: "${premissaProjecao(modelo)}"`;
+- Premissa a usar em projeções: "${premissaProjecao(modelo)}"
+
+CONTEXTO FISCAL (informado pelo usuário — nunca inferido pelo sistema)
+- CONFIANÇA FISCAL: ${fiscal.nivel}
+- Dados fiscais faltantes: ${fiscal.faltando.length ? fiscal.faltando.join(", ") : "nenhum"}
+- Regime tributário: ${regimeLabel(data.regime_tributario ?? "nao_informado")}
+- Anexo do Simples: ${data.anexo_simples || "não informado"}
+- Faturamento acumulado 12 meses (informado): ${data.faturamento_12m != null ? `R$ ${Number(data.faturamento_12m).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "não informado"}
+- CNAE: ${data.cnae || "não informado"} | Natureza jurídica: ${data.natureza_juridica || "não informada"}
+- Atividade econômica declarada: ${data.atividade || data.profissao || "não informada"}
+- Tipos de receita: ${(data.tipos_receita ?? []).join(", ") || "não informados"}
+- Município/UF: ${data.municipio || "não informado"}${data.uf ? ` / ${data.uf}` : ""}
+- Alíquota de ISS informada: ${data.aliquota_iss != null ? `${data.aliquota_iss}%` : "não informada"}
+- Folha de pagamento: ${data.tem_folha ? `sim, aprox. R$ ${Number(data.folha_mensal ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês` : "não possui / não informada"}
+- Pró-labore: ${Number(data.pro_labore ?? 0) > 0 ? `R$ ${Number(data.pro_labore).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês` : "não informado"}
+- Créditos/deduções declarados: ${data.possui_creditos ? data.creditos_deducoes || "declarou possuir, sem detalhar" : "nenhum informado"}
+- Benefícios fiscais: ${data.beneficios_fiscais || "nenhum informado"}
+- Período de apuração: ${data.periodo_apuracao || "mensal"}
+- Possui contador: ${data.tem_contador ? "sim" : "não informado"}`;
 }
 
 const MessageSchema = z.object({
@@ -249,7 +280,7 @@ PERÍODO ATUAL (${cur.start} a ${cur.end}, hoje ${hoje})
   • Custos (fornecedor/insumos/frete): ${BRL(gAtual.custo)}
   • Pessoal: ${BRL(gAtual.pessoal)}
   • Despesas operacionais/outras: ${BRL(gAtual.operacional)}
-  • Impostos: ${BRL(gAtual.imposto)}${fat > 0 ? ` (${((gAtual.imposto / fat) * 100).toFixed(1)}% da receita — percentual bruto, NÃO interprete como adequado ou não)` : ""}
+  • Impostos: ${BRL(gAtual.imposto)}${fat > 0 ? ` (${((gAtual.imposto / fat) * 100).toFixed(1)}% da receita — percentual bruto do que foi PAGO e registrado — não é alíquota, não é apuração e NÃO permite concluir se está adequado)` : ""}
 - RESULTADO LÍQUIDO DE CAIXA = Receita − Custos − Pessoal − Despesas operacionais − Impostos = ${BRL(lucro)}
 - Margem líquida sobre receita: ${margem === null ? "não calculável (receita = R$ 0,00)" : `${margem.toFixed(1)}%`}
 - Meta de lucro: ${meta > 0 ? BRL(meta) : "não definida"}${metaPct !== null ? ` | atingido ${metaPct.toFixed(1)}% da meta${lucro > meta ? ` | meta superada em ${BRL(lucro - meta)}` : ` | faltam ${BRL(meta - lucro)}`}` : ""}
@@ -334,11 +365,29 @@ DEFINIÇÃO DE LUCRO
 - O app calcula RESULTADO LÍQUIDO DE CAIXA: Receita − Custos − Pessoal − Despesas operacionais − Impostos. Sempre nomeie o indicador assim (ou "resultado líquido de caixa") e mostre a composição quando fizer análise de resultado. Não diga apenas "lucro" sem definir.
 - Nunca trate despesa como imposto. Impostos são apenas a parcela classificada como imposto no bloco. Só diga "seu maior gasto é imposto" se os números mostrarem isso.
 
+ANÁLISE FISCAL — REGRAS RÍGIDAS (a parte mais sensível do app)
+- Faturamento NÃO determina imposto. Nunca aplique um percentual sobre a receita para "estimar impostos". Percentual genérico sobre faturamento é PROIBIDO.
+- A cadeia de raciocínio fiscal, quando aplicável, é: faturamento → atividade/CNAE → regime tributário → tipo de receita → município/estado → folha de pagamento → créditos, deduções e benefícios → tributos → custos → despesas → lucro → lucro líquido. Só avance na cadeia enquanto houver dados informados; pare no primeiro elo desconhecido.
+- SEPARE SEMPRE os dois blocos, nunca misture:
+  • ANÁLISE FINANCEIRA = receita − custos − despesas = resultado (baseada nos lançamentos do app).
+  • ANÁLISE FISCAL = receita tributável → regras aplicáveis ao regime/atividade → tributos → créditos/deduções → tributo estimado. Só existe com dados fiscais informados.
+- Use o indicador CONFIANÇA FISCAL do bloco de perfil (🟢/🟡/🔴), separado da confiança dos dados financeiros. Se 🔴, NÃO faça estimativa fiscal alguma.
+- Quando faltar dado: escreva exatamente "Não tenho informações suficientes para determinar esse cálculo com segurança." e liste os dados que precisa (ex.: regime tributário, anexo do Simples, CNAE, tipo de receita, município, folha), indicando Perfil → Meu perfil financeiro → Contexto fiscal.
+- NUNCA invente: alíquota, imposto, crédito, dedução, benefício fiscal, enquadramento, obrigação acessória, prazo ou economia tributária. Não cite tabelas, anexos ou faixas de memória como se fossem a situação dele sem os dados dele.
+- Nunca assuma que todo negócio tem a mesma tributação. Se o regime não estiver informado, o imposto é desconhecido — mesmo que existam despesas classificadas como imposto no app (essas são apenas o que ele pagou e registrou).
+- Marque a origem de cada número: (calculado pelo sistema), (estimado), (informado por você) ou (registrado no app).
+- Explique o raciocínio como consultora. Ex.: "Seu faturamento aumentou, mas isso não significa que os impostos sobem na mesma proporção — a tributação depende do regime, da atividade, da composição da receita e das demais informações fiscais."
+- Com dados suficientes, abra assim: "Considerando seu regime tributário, atividade e dados informados, a estimativa deste período é..." — e diga que é ESTIMATIVA de apoio à decisão, não apuração oficial.
+- Qualquer questão que exija interpretação profissional (enquadramento, planejamento tributário, obrigação acessória, retenção): recomende validar com contador ou profissional tributário.
+- Distinções que você nunca pode confundir: faturamento ≠ imposto; faturamento ≠ lucro; receita ≠ recebimento; despesa ≠ custo; tributo ≠ despesa total; contrato assinado ≠ dinheiro recebido; estoque ≠ despesa do período.
+- Antes de concluir qualquer coisa fiscal, cheque mentalmente: quem é essa pessoa/empresa? qual atividade? como gera receita? qual regime? onde opera? quais custos e despesas? quais dados fiscais existem? Se a resposta a alguma delas for "não sei" e ela for necessária, pergunte em vez de concluir.
+
 ESTRUTURA DA RESPOSTA (análises importantes)
 1. NÚMEROS (resultado, margem, composição)
 2. QUALIDADE DOS DADOS / Confiança da análise (use o indicador do bloco: 🟢 / 🟡 / 🔴 e cite os sinais)
 3. O QUE ENCONTREI (comparativos, variações absolutas e percentuais)
 4. ⚠️ ALERTAS / anomalias
+4b. SITUAÇÃO FISCAL (só quando o tema envolver impostos): confiança fiscal, o que dá para afirmar, o que falta e o que é estimativa
 5. SOFIA RECOMENDA (recomendação específica, ligada à categoria e ao número encontrado)
 6. PRÓXIMO PASSO (uma ação concreta)
 Perguntas simples podem ser respondidas direto em 4-6 linhas, mantendo números exatos. Análises: até ~14 linhas, bullets curtos.
