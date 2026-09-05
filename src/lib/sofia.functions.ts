@@ -280,7 +280,7 @@ PERÍODO ATUAL (${cur.start} a ${cur.end}, hoje ${hoje})
   • Custos (fornecedor/insumos/frete): ${BRL(gAtual.custo)}
   • Pessoal: ${BRL(gAtual.pessoal)}
   • Despesas operacionais/outras: ${BRL(gAtual.operacional)}
-  • Impostos: ${BRL(gAtual.imposto)}${fat > 0 ? ` (${((gAtual.imposto / fat) * 100).toFixed(1)}% da receita — percentual bruto, NÃO interprete como adequado ou não)` : ""}
+  • Impostos: ${BRL(gAtual.imposto)}${fat > 0 ? ` (${((gAtual.imposto / fat) * 100).toFixed(1)}% da receita — percentual bruto do que foi PAGO e registrado — não é alíquota, não é apuração e NÃO permite concluir se está adequado)` : ""}
 - RESULTADO LÍQUIDO DE CAIXA = Receita − Custos − Pessoal − Despesas operacionais − Impostos = ${BRL(lucro)}
 - Margem líquida sobre receita: ${margem === null ? "não calculável (receita = R$ 0,00)" : `${margem.toFixed(1)}%`}
 - Meta de lucro: ${meta > 0 ? BRL(meta) : "não definida"}${metaPct !== null ? ` | atingido ${metaPct.toFixed(1)}% da meta${lucro > meta ? ` | meta superada em ${BRL(lucro - meta)}` : ` | faltam ${BRL(meta - lucro)}`}` : ""}
