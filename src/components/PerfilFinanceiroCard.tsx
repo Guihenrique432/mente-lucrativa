@@ -3,15 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Briefcase, ChevronDown, Loader2, Save } from "lucide-react";
 import {
+  ANEXOS_SIMPLES,
   DESPESAS_COMUNS,
   FORMAS_RECEBIMENTO,
   MODELOS,
+  PERIODOS_APURACAO,
   RECORRENCIAS,
+  REGIMES,
+  TIPOS_RECEITA,
+  confiancaFiscal,
   fluxoFinanceiro,
   modeloLabel,
   perfilVazio,
   type ModeloPerfil,
   type PerfilFinanceiro,
+  type RegimeTributario,
 } from "@/lib/perfil-financeiro";
 
 /** Editar meu perfil financeiro — nunca apaga histórico, só adapta a leitura dos dados. */
@@ -54,6 +60,8 @@ export function PerfilFinanceiroCard() {
     if (error) return toast.error("Não consegui salvar agora.");
     toast.success("Perfil financeiro atualizado 💙");
   }
+
+  const fiscal = confiancaFiscal(p);
 
   if (loading || !p) {
     return (
