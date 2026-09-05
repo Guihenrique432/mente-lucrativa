@@ -203,6 +203,207 @@ export function PerfilFinanceiroCard() {
             />
           </Field>
 
+          {/* ---------------- contexto fiscal ---------------- */}
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <p className="text-sm font-semibold text-foreground">Contexto fiscal</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              A Sofia só analisa impostos com o que você informar aqui. O que ficar em branco ela vai pedir, nunca
+              adivinhar. {fiscal.nivel}
+            </p>
+            {fiscal.faltando.length > 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Faltando: {fiscal.faltando.join(", ")}.</p>
+            )}
+          </div>
+
+          <Field label="Regime tributário">
+            <select
+              value={p.regime_tributario}
+              onChange={(e) => set("regime_tributario", e.target.value as RegimeTributario)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            >
+              {REGIMES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {p.regime_tributario === "simples" && (
+            <>
+              <Field label="Anexo do Simples Nacional">
+                <select
+                  value={p.anexo_simples ?? ""}
+                  onChange={(e) => set("anexo_simples", e.target.value || null)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+                >
+                  <option value="">Não informado</option>
+                  {ANEXOS_SIMPLES.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Faturamento dos últimos 12 meses (R$)">
+                <input
+                  inputMode="decimal"
+                  value={p.faturamento_12m ?? ""}
+                  onChange={(e) =>
+                    set("faturamento_12m", e.target.value === "" ? null : Number(e.target.value.replace(",", ".")) || 0)
+                  }
+                  placeholder="Define a faixa do Simples"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+                />
+              </Field>
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="CNAE (se souber)">
+              <input
+                value={p.cnae ?? ""}
+                onChange={(e) => set("cnae", e.target.value || null)}
+                placeholder="0000-0/00"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+              />
+            </Field>
+            <Field label="Natureza jurídica">
+              <input
+                value={p.natureza_juridica ?? ""}
+                onChange={(e) => set("natureza_juridica", e.target.value || null)}
+                placeholder="MEI, LTDA, SLU..."
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+              />
+            </Field>
+          </div>
+
+          <Field label="Tipo de receita">
+            <div className="flex flex-wrap gap-2">
+              {TIPOS_RECEITA.map((t) => {
+                const on = (p.tipos_receita ?? []).includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() =>
+                      set(
+                        "tipos_receita",
+                        on ? p.tipos_receita.filter((x) => x !== t) : [...(p.tipos_receita ?? []), t],
+                      )
+                    }
+                    className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                      on
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-background text-muted-foreground"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Field label="Município onde opera">
+                <input
+                  value={p.municipio ?? ""}
+                  onChange={(e) => set("municipio", e.target.value || null)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+                />
+              </Field>
+            </div>
+            <Field label="UF">
+              <input
+                value={p.uf ?? ""}
+                maxLength={2}
+                onChange={(e) => set("uf", e.target.value.toUpperCase() || null)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm uppercase outline-none focus:border-accent"
+              />
+            </Field>
+          </div>
+
+          <Field label="Alíquota de ISS do seu município (%) — se souber">
+            <input
+              inputMode="decimal"
+              value={p.aliquota_iss ?? ""}
+              onChange={(e) =>
+                set("aliquota_iss", e.target.value === "" ? null : Number(e.target.value.replace(",", ".")) || 0)
+              }
+              placeholder="Ex: 2, 3, 5"
+              className="w-32 rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </Field>
+
+          <Switch label="Tenho folha de pagamento" value={p.tem_folha} onChange={(v) => set("tem_folha", v)} />
+          {p.tem_folha && (
+            <Field label="Folha mensal aproximada (R$)">
+              <input
+                inputMode="decimal"
+                value={p.folha_mensal || ""}
+                onChange={(e) => set("folha_mensal", Number(e.target.value.replace(",", ".")) || 0)}
+                className="w-40 rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+              />
+            </Field>
+          )}
+
+          <Field label="Pró-labore mensal (R$)">
+            <input
+              inputMode="decimal"
+              value={p.pro_labore || ""}
+              onChange={(e) => set("pro_labore", Number(e.target.value.replace(",", ".")) || 0)}
+              className="w-40 rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </Field>
+
+          <Switch
+            label="Tenho créditos ou deduções a aproveitar"
+            value={p.possui_creditos}
+            onChange={(v) => set("possui_creditos", v)}
+          />
+          {p.possui_creditos && (
+            <Field label="Quais créditos ou deduções?">
+              <textarea
+                value={p.creditos_deducoes ?? ""}
+                onChange={(e) => set("creditos_deducoes", e.target.value || null)}
+                rows={2}
+                placeholder="Ex: crédito de ICMS nas compras, dedução de materiais aplicados..."
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+              />
+            </Field>
+          )}
+
+          <Field label="Benefícios fiscais (se houver)">
+            <input
+              value={p.beneficios_fiscais ?? ""}
+              onChange={(e) => set("beneficios_fiscais", e.target.value || null)}
+              placeholder="Ex: isenção municipal, incentivo estadual..."
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Período de apuração">
+              <select
+                value={p.periodo_apuracao}
+                onChange={(e) => set("periodo_apuracao", e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+              >
+                {PERIODOS_APURACAO.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="self-end pb-0.5">
+              <Switch label="Tenho contador" value={p.tem_contador} onChange={(v) => set("tem_contador", v)} />
+            </div>
+          </div>
+
+
           <button
             onClick={salvar}
             disabled={saving}
