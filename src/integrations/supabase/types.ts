@@ -232,6 +232,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lembretes: {
+        Row: {
+          assunto: string
+          ativo: boolean
+          canal: string
+          created_at: string
+          dias_semana: number[]
+          horario: string
+          id: string
+          mensagem: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assunto?: string
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          dias_semana?: number[]
+          horario?: string
+          id?: string
+          mensagem?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assunto?: string
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          dias_semana?: number[]
+          horario?: string
+          id?: string
+          mensagem?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           created_at: string
@@ -331,6 +370,7 @@ export type Database = {
           data: string
           horario: string
           id: string
+          lembrete_id: string | null
           status: string
           user_id: string
         }
@@ -340,6 +380,7 @@ export type Database = {
           data: string
           horario?: string
           id?: string
+          lembrete_id?: string | null
           status?: string
           user_id: string
         }
@@ -349,6 +390,7 @@ export type Database = {
           data?: string
           horario?: string
           id?: string
+          lembrete_id?: string | null
           status?: string
           user_id?: string
         }
