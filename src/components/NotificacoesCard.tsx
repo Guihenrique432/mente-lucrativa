@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Loader2, Plus, X } from "lucide-react";
+import { Bell, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,20 +8,35 @@ import {
   notificacoesAtivas,
   pushSuportado,
 } from "@/lib/push";
+import {
+  ASSUNTOS,
+  DIAS,
+  type AssuntoLembrete,
+  assuntoInfo,
+  resumoDias,
+  textoLembrete,
+} from "@/lib/lembretes";
+import type { Tables } from "@/integrations/supabase/types";
 
-const MAX_HORARIOS = 5;
-const PADRAO = ["21:30"];
+type Lembrete = Tables<"lembretes">;
 
-function normalizar(lista: string[]) {
-  return [...new Set(lista.filter((h) => /^\d{2}:\d{2}$/.test(h)))].sort();
-}
+const TODOS_OS_DIAS = DIAS.map((d) => d.valor);
+
+const formVazio = {
+  horario: "21:30",
+  dias: TODOS_OS_DIAS,
+  assunto: "lucro" as AssuntoLembrete,
+  mensagem: "",
+};
 
 export function NotificacoesCard() {
-  const [ativo, setAtivo] = useState(false);
+  const [pushAtivo, setPushAtivo] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [suportado, setSuportado] = useState(true);
-  const [horarios, setHorarios] = useState<string[]>(PADRAO);
-  const [novoHorario, setNovoHorario] = useState("09:00");
+  const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [formAberto, setFormAberto] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState(formVazio);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -30,19 +45,19 @@ export function NotificacoesCard() {
       const ok = pushSuportado();
       const estado = ok ? await notificacoesAtivas() : false;
       const { data: userData } = await supabase.auth.getUser();
-      let lista = PADRAO;
+      let lista: Lembrete[] = [];
       if (userData.user) {
-        const { data: pref } = await supabase
-          .from("preferencias_notificacao")
-          .select("horarios")
+        const { data } = await supabase
+          .from("lembretes")
+          .select("*")
           .eq("user_id", userData.user.id)
-          .maybeSingle();
-        if (pref?.horarios?.length) lista = normalizar(pref.horarios);
+          .order("horario");
+        lista = data ?? [];
       }
       if (!vivo) return;
       setSuportado(ok);
-      setAtivo(estado);
-      setHorarios(lista);
+      setPushAtivo(estado);
+      setLembretes(lista);
       setCarregando(false);
     })();
     return () => {
@@ -50,64 +65,117 @@ export function NotificacoesCard() {
     };
   }, []);
 
-  async function salvarHorarios(lista: string[]) {
+  function abrirNovo() {
+    setEditandoId(null);
+    setForm(formVazio);
+    setFormAberto(true);
+  }
+
+  function abrirEdicao(l: Lembrete) {
+    setEditandoId(l.id);
+    setForm({
+      horario: l.horario,
+      dias: l.dias_semana.length ? [...l.dias_semana].sort() : TODOS_OS_DIAS,
+      assunto: (l.assunto as AssuntoLembrete) ?? "lucro",
+      mensagem: l.mensagem ?? "",
+    });
+    setFormAberto(true);
+  }
+
+  function alternarDia(dia: number) {
+    setForm((f) => ({
+      ...f,
+      dias: f.dias.includes(dia) ? f.dias.filter((d) => d !== dia) : [...f.dias, dia].sort(),
+    }));
+  }
+
+  async function salvar() {
+    if (!/^\d{2}:\d{2}$/.test(form.horario)) {
+      toast.error("Escolha um horário válido.");
+      return;
+    }
+    if (form.dias.length === 0) {
+      toast.error("Escolha pelo menos um dia da semana.");
+      return;
+    }
+    if (form.assunto === "personalizado" && !form.mensagem.trim()) {
+      toast.error("Escreva o texto do seu aviso.");
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
     setSalvando(true);
-    const { error } = await supabase
-      .from("preferencias_notificacao")
-      .upsert({ user_id: userData.user.id, horarios: lista }, { onConflict: "user_id" });
+    const payload = {
+      horario: form.horario,
+      dias_semana: form.dias,
+      assunto: form.assunto,
+      mensagem: form.mensagem.trim() || null,
+      canal: "push",
+    };
+    const resposta = editandoId
+      ? await supabase.from("lembretes").update(payload).eq("id", editandoId).select().single()
+      : await supabase
+          .from("lembretes")
+          .insert({ ...payload, user_id: userData.user.id })
+          .select()
+          .single();
     setSalvando(false);
+    if (resposta.error) {
+      toast.error("Não foi possível salvar o aviso.");
+      return;
+    }
+    const salvo = resposta.data;
+    setLembretes((ls) =>
+      (editandoId ? ls.map((l) => (l.id === editandoId ? salvo : l)) : [...ls, salvo]).sort(
+        (a, b) => a.horario.localeCompare(b.horario),
+      ),
+    );
+    setFormAberto(false);
+    setEditandoId(null);
+    toast.success(editandoId ? "Aviso atualizado!" : "Aviso criado!");
+  }
+
+  async function alternarAtivo(l: Lembrete) {
+    const { error } = await supabase.from("lembretes").update({ ativo: !l.ativo }).eq("id", l.id);
     if (error) {
-      toast.error("Não foi possível salvar os horários.");
+      toast.error("Não foi possível alterar o aviso.");
       return;
     }
-    setHorarios(lista);
-    toast.success("Horários salvos!");
+    setLembretes((ls) => ls.map((x) => (x.id === l.id ? { ...x, ativo: !l.ativo } : x)));
   }
 
-  function adicionar() {
-    if (!/^\d{2}:\d{2}$/.test(novoHorario)) return;
-    if (horarios.includes(novoHorario)) {
-      toast.info("Esse horário já está na lista.");
+  async function remover(l: Lembrete) {
+    const { error } = await supabase.from("lembretes").delete().eq("id", l.id);
+    if (error) {
+      toast.error("Não foi possível remover o aviso.");
       return;
     }
-    if (horarios.length >= MAX_HORARIOS) {
-      toast.error(`Máximo de ${MAX_HORARIOS} avisos por dia.`);
-      return;
-    }
-    salvarHorarios(normalizar([...horarios, novoHorario]));
+    setLembretes((ls) => ls.filter((x) => x.id !== l.id));
+    toast.success("Aviso removido.");
   }
 
-  function remover(h: string) {
-    if (horarios.length === 1) {
-      toast.error("Deixe pelo menos um horário ou desative o lembrete.");
-      return;
-    }
-    salvarHorarios(horarios.filter((x) => x !== h));
-  }
-
-  async function alternar() {
+  async function alternarPush() {
     setCarregando(true);
     try {
-      if (ativo) {
+      if (pushAtivo) {
         await desativarNotificacoes();
-        setAtivo(false);
-        toast.success("Lembretes desativados.");
+        setPushAtivo(false);
+        toast.success("Avisos desativados neste aparelho.");
       } else {
         const res = await ativarNotificacoes();
         if (!res.ok) {
           toast.error(res.erro ?? "Não foi possível ativar as notificações.");
         } else {
-          await salvarHorarios(horarios);
-          setAtivo(true);
-          toast.success("Pronto! Você receberá o lembrete nos horários escolhidos.");
+          setPushAtivo(true);
+          toast.success("Pronto! Você receberá seus avisos neste aparelho.");
         }
       }
     } finally {
       setCarregando(false);
     }
   }
+
+  const ativos = lembretes.filter((l) => l.ativo).length;
 
   return (
     <section
@@ -120,99 +188,238 @@ export function NotificacoesCard() {
             <Bell className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">Lembretes do dia</p>
+            <p className="text-sm font-bold text-foreground">Meus avisos</p>
             <p className="text-xs text-muted-foreground">
               {carregando
                 ? "Carregando..."
-                : ativo
-                  ? `${horarios.length} aviso${horarios.length > 1 ? "s" : ""} por dia neste aparelho`
-                  : "Desativado"}
+                : pushAtivo
+                  ? `${ativos} aviso${ativos === 1 ? "" : "s"} ativo${ativos === 1 ? "" : "s"} neste aparelho`
+                  : "Desativado neste aparelho"}
             </p>
           </div>
         </div>
         {!carregando && suportado && (
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              ativo ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+              pushAtivo ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
             }`}
           >
-            {ativo ? "ON" : "OFF"}
+            {pushAtivo ? "ON" : "OFF"}
           </span>
         )}
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        “Vamos mostrar seu lucro real de hoje e quanto você gastou?” — escolha a que horas e quantas
-        vezes por dia você quer receber esse aviso.
+        Crie seus próprios avisos: escolha o assunto, escreva seu texto, defina o horário e os dias
+        da semana. Os avisos chegam como notificação neste aparelho.
       </p>
 
       {!carregando && (
         <div className="mt-4 space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Meus horários
+            Avisos cadastrados
           </p>
-          <div className="flex flex-wrap gap-2">
-            {horarios.map((h) => (
-              <span
-                key={h}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-semibold text-foreground"
-              >
-                {h}
+
+          {lembretes.length === 0 && !formAberto && (
+            <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+              Nenhum aviso ainda. Crie o primeiro e escolha como quer ser lembrado.
+            </p>
+          )}
+
+          {lembretes.map((l) => (
+            <div
+              key={l.id}
+              className={`rounded-xl border border-border p-3 transition ${l.ativo ? "bg-background" : "bg-muted/50 opacity-70"}`}
+            >
+              <div className="flex items-start justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => remover(h)}
-                  aria-label={`Remover horário ${h}`}
-                  className="text-muted-foreground transition hover:text-danger"
+                  onClick={() => abrirEdicao(l)}
+                  className="min-w-0 flex-1 text-left"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <p className="text-sm font-bold text-foreground">
+                    {l.horario} · {assuntoInfo(l.assunto).label}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    “{textoLembrete(l.assunto, l.mensagem)}”
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {resumoDias(l.dias_semana)}
+                  </p>
                 </button>
-              </span>
-            ))}
-          </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => abrirEdicao(l)}
+                    aria-label="Editar aviso"
+                    className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remover(l)}
+                    aria-label="Remover aviso"
+                    className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-danger"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alternarAtivo(l)}
+                    aria-label={l.ativo ? "Pausar aviso" : "Ativar aviso"}
+                    className={`relative h-6 w-11 rounded-full transition ${l.ativo ? "bg-accent" : "bg-muted"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${l.ativo ? "left-[22px]" : "left-0.5"}`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
 
-          {horarios.length < MAX_HORARIOS && (
-            <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={novoHorario}
-                onChange={(e) => setNovoHorario(e.target.value)}
-                className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-              />
+          {formAberto && (
+            <div className="space-y-3 rounded-xl border border-accent/40 bg-background p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-foreground">
+                  {editandoId ? "Editar aviso" : "Novo aviso"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFormAberto(false)}
+                  aria-label="Fechar"
+                  className="text-muted-foreground transition hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Assunto
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ASSUNTOS.map((a) => (
+                    <button
+                      key={a.valor}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, assunto: a.valor }))}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        form.assunto === a.valor
+                          ? "border-accent bg-accent/10 text-accent"
+                          : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Texto do aviso
+                </p>
+                {form.assunto === "personalizado" ? (
+                  <textarea
+                    value={form.mensagem}
+                    onChange={(e) => setForm((f) => ({ ...f, mensagem: e.target.value }))}
+                    maxLength={140}
+                    rows={2}
+                    placeholder="Ex.: Conferir o caixa antes de fechar"
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                  />
+                ) : (
+                  <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+                    “{assuntoInfo(form.assunto).mensagem}” — você pode trocar escrevendo seu próprio
+                    aviso em “Escrever meu aviso”.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-end gap-3">
+                <div>
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Horário
+                  </p>
+                  <input
+                    type="time"
+                    value={form.horario}
+                    onChange={(e) => setForm((f) => ({ ...f, horario: e.target.value }))}
+                    className="rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Dias da semana
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DIAS.map((d) => (
+                      <button
+                        key={d.valor}
+                        type="button"
+                        onClick={() => alternarDia(d.valor)}
+                        className={`rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                          form.dias.includes(d.valor)
+                            ? "border-accent bg-accent/10 text-accent"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {d.curto}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                Entrega: notificação neste aparelho, no horário de Brasília.
+              </p>
+
               <button
                 type="button"
-                onClick={adicionar}
+                onClick={salvar}
                 disabled={salvando}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
               >
-                {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Adicionar
+                {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editandoId ? "Salvar alterações" : "Criar aviso"}
               </button>
             </div>
           )}
-          <p className="text-[11px] text-muted-foreground">
-            Até {MAX_HORARIOS} avisos por dia, no horário de Brasília.
-          </p>
+
+          {!formAberto && (
+            <button
+              type="button"
+              onClick={abrirNovo}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground transition hover:border-accent hover:text-accent"
+            >
+              <Plus className="h-4 w-4" />
+              Criar novo aviso
+            </button>
+          )}
         </div>
       )}
 
       {suportado ? (
         <button
           type="button"
-          onClick={alternar}
+          onClick={alternarPush}
           disabled={carregando}
           className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:opacity-60 ${
-            ativo
+            pushAtivo
               ? "border border-border bg-muted text-foreground"
               : "bg-accent text-accent-foreground hover:opacity-90"
           }`}
         >
           {carregando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-          {ativo ? "Desativar lembretes" : "Ativar lembretes"}
+          {pushAtivo ? "Desativar avisos neste aparelho" : "Ativar avisos neste aparelho"}
         </button>
       ) : (
         <p className="mt-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
           Este navegador não permite notificações. No iPhone, adicione o app à tela de início para
-          receber os lembretes.
+          receber os avisos.
         </p>
       )}
     </section>
