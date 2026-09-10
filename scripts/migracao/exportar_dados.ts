@@ -1,3 +1,4 @@
+console.log("INICIO");
 #!/usr/bin/env bun
 // Script para exportar os dados das tabelas public.* do Supabase atual.
 // Uso:
