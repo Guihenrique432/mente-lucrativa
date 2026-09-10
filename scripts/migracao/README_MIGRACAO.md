@@ -6,10 +6,12 @@ Este pacote contém tudo o que você precisa para recriar o banco de dados e hos
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `schema_completo.sql` | Estrutura completa do banco (tabelas, enums, funções, triggers, RLS, policies). |
-| `exportar_dados.ts` | Script que exporta os dados das tabelas `public.*` do Supabase atual. |
-| `importar_usuarios.ts` | Script que recria os usuários de autenticação no novo Supabase. |
-| `README_MIGRACAO.md` | Este guia. |
+| `scripts/migracao/schema_completo.sql` | Estrutura completa do banco (tabelas, enums, funções, triggers, RLS, policies). |
+| `scripts/migracao/exportar_dados.ts` | Script que exporta os dados das tabelas `public.*` do Supabase atual. |
+| `scripts/migracao/importar_usuarios.ts` | Script que recria os usuários de autenticação no novo Supabase. |
+| `.env.example` | Modelo das variáveis de ambiente para apontar o app para o novo Supabase. |
+| `vite.config.vercel.ts` | Configuração de build para hospedar o app na Vercel. |
+| `scripts/migracao/README_MIGRACAO.md` | Este guia. |
 
 ## Plataformas recomendadas
 
