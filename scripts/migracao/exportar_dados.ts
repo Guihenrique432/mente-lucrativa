@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-console.log("INICIO");
 // Script para exportar os dados das tabelas public.* do Supabase atual.
 // Uso:
 //   SUPABASE_URL=<url> SUPABASE_SERVICE_ROLE_KEY=<key> bun exportar_dados.ts
