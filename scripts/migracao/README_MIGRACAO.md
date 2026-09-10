@@ -66,12 +66,12 @@ GRANT SELECT ON public.migration_auth_users TO service_role;
 
 Depois exporte essa tabela junto com as demais (o script `exportar_dados.ts` já a incluirá se ela estiver no schema).
 
-No novo Supabase, rode:
+No novo Supabase, rode a partir da pasta raiz do projeto:
 
 ```bash
 NOVO_SUPABASE_URL=<url-do-novo> \
 NOVO_SUPABASE_SERVICE_ROLE_KEY=<chave-service-role-do-novo> \
-bun importar_usuarios.ts dados/migration_auth_users.json
+bun scripts/migracao/importar_usuarios.ts scripts/migracao/dados/migration_auth_users.json
 ```
 
 ### 5. Importar os dados públicos
