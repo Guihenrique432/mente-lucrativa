@@ -40,12 +40,12 @@ Este pacote contém tudo o que você precisa para recriar o banco de dados e hos
 
 O banco atual precisa estar ativo para exportar. Se ele estiver pausado, você precisa religá-lo manualmente nas configurações do Cloud.
 
-Com o banco ativo, rode:
+Com o banco ativo, rode a partir da pasta raiz do projeto:
 
 ```bash
 SUPABASE_URL=https://rnoxsjmiykmrptoeolit.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=<sua-chave-service-role-do-Lovable> \
-bun exportar_dados.ts
+bun scripts/migracao/exportar_dados.ts
 ```
 
 Isso gera a pasta `dados/` com um JSON por tabela e o arquivo `dados_publicos.sql`.
