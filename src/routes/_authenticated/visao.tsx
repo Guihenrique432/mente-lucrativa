@@ -7,7 +7,11 @@ import { ArrowLeft, TrendingUp, Loader2, Info, AlertTriangle, Upload } from "luc
 import { BottomNav } from "@/components/BottomNav";
 import { ImportarDadosModal } from "@/components/ImportarDadosModal";
 import { simularDecisao } from "@/lib/visao.functions";
-import type { ResultadoSimulacao } from "@/lib/visao-calc";
+import {
+  parseValorMonetario,
+  VALOR_MAXIMO_SIMULACAO,
+  type ResultadoSimulacao,
+} from "@/lib/visao-calc";
 
 export const Route = createFileRoute("/_authenticated/visao")({
   head: () => ({
@@ -70,9 +74,13 @@ function VisaoPage() {
 
   async function rodar(e: React.FormEvent) {
     e.preventDefault();
-    const v = Number(String(valor).replace(/\./g, "").replace(",", "."));
-    if (!v || v <= 0) {
-      setErro("Informe o valor da compra.");
+    const v = parseValorMonetario(valor);
+    if (v === null || v <= 0) {
+      setErro("Informe um valor válido para a compra.");
+      return;
+    }
+    if (v > VALOR_MAXIMO_SIMULACAO) {
+      setErro("O valor máximo para a simulação é R$ 100.000.000,00.");
       return;
     }
     setErro("");
@@ -162,6 +170,8 @@ function VisaoPage() {
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               placeholder="4600,00"
+              maxLength={20}
+              aria-invalid={Boolean(erro)}
               className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
             />
           </label>
