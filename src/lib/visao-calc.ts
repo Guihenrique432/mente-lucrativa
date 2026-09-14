@@ -3,6 +3,40 @@
 
 export type FormaPagamento = "avista" | "parcelado";
 
+export const VALOR_MAXIMO_SIMULACAO = 100_000_000;
+
+export function parseValorMonetario(input: string): number | null {
+  const bruto = input.trim().replace(/^R\$\s*/i, "").replace(/\s/g, "");
+  if (!bruto || !/^\d[\d.,]*$/.test(bruto)) return null;
+
+  const temVirgula = bruto.includes(",");
+  const temPonto = bruto.includes(".");
+  let normalizado = bruto;
+
+  if (temVirgula && temPonto) {
+    const separadorDecimal = bruto.lastIndexOf(",") > bruto.lastIndexOf(".") ? "," : ".";
+    const indiceDecimal = bruto.lastIndexOf(separadorDecimal);
+    const inteiros = bruto.slice(0, indiceDecimal).replace(/[.,]/g, "");
+    const centavos = bruto.slice(indiceDecimal + 1);
+    if (!/^\d+$/.test(inteiros) || !/^\d{1,2}$/.test(centavos)) return null;
+    normalizado = `${inteiros}.${centavos}`;
+  } else if (temVirgula) {
+    const partes = bruto.split(",");
+    if (partes.length !== 2 || !/^\d+$/.test(partes[0]) || !/^\d{1,2}$/.test(partes[1])) return null;
+    normalizado = `${partes[0]}.${partes[1]}`;
+  } else if (temPonto) {
+    if (/^\d{1,3}(\.\d{3})+$/.test(bruto)) {
+      normalizado = bruto.replace(/\./g, "");
+    } else {
+      const partes = bruto.split(".");
+      if (partes.length !== 2 || !/^\d+$/.test(partes[0]) || !/^\d{1,2}$/.test(partes[1])) return null;
+    }
+  }
+
+  const valor = Number(normalizado);
+  return Number.isFinite(valor) ? valor : null;
+}
+
 export type EntradaSimulacao = {
   valor: number;
   forma: FormaPagamento;

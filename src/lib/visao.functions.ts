@@ -1,9 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { VALOR_MAXIMO_SIMULACAO } from "./visao-calc";
 
 const InputSchema = z.object({
-  valor: z.number().min(0).max(100_000_000),
+  valor: z
+    .number()
+    .positive("Informe um valor maior que zero.")
+    .max(VALOR_MAXIMO_SIMULACAO, "O valor máximo para a simulação é R$ 100.000.000,00."),
   forma: z.enum(["avista", "parcelado"]),
   parcelas: z.number().int().min(1).max(420),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
