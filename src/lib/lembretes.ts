@@ -16,7 +16,7 @@ export const ASSUNTOS: {
     valor: "despesas",
     label: "Lançar entradas e saídas",
     mensagem: "Já lançou as entradas e saídas de hoje?",
-    url: "/financeiro",
+    url: "/despesas",
   },
   {
     valor: "estoque",
