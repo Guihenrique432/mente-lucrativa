@@ -205,6 +205,53 @@ export const checkInvite = createServerFn({ method: "POST" })
     return { valid };
   });
 
+/** Authenticated OAuth user: consumes a pending invitation and enables access. */
+export const acceptInviteAfterOAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(tokenSchema)
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const token_hash = await sha256Hex(data.token);
+    const nowIso = new Date().toISOString();
+    const { data: row } = await supabaseAdmin
+      .from("invitations")
+      .select("id, status, expires_at, kind, uses")
+      .eq("token_hash", token_hash)
+      .maybeSingle();
+    if (!row || row.status !== "pending" || (row.expires_at && new Date(row.expires_at).getTime() <= Date.now())) {
+      return { ok: false as const };
+    }
+
+    if (row.kind !== "rotating") {
+      const { data: claimed } = await supabaseAdmin
+        .from("invitations")
+        .update({ status: "used", used_at: nowIso, used_by: context.userId })
+        .eq("id", row.id)
+        .eq("status", "pending")
+        .select("id");
+      if (!claimed?.length) return { ok: false as const };
+    } else {
+      await supabaseAdmin
+        .from("invitations")
+        .update({ uses: (row.uses ?? 0) + 1, used_at: nowIso, used_by: context.userId })
+        .eq("id", row.id);
+    }
+
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    const user = userData.user;
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
+      id: context.userId,
+      email: user?.email ?? null,
+      nome:
+        (user?.user_metadata?.full_name as string | undefined) ??
+        (user?.user_metadata?.name as string | undefined) ??
+        user?.email?.split("@")[0] ??
+        null,
+    });
+    if (profileError) throw new Error("Não foi possível liberar o acesso do convite.");
+    return { ok: true as const };
+  });
+
 /** Public: creates the account only when the invite is valid; consumes it atomically. */
 export const signupWithInvite = createServerFn({ method: "POST" })
   .inputValidator(signupSchema)

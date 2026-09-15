@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { Sparkles, Loader2 } from "lucide-react";
+import { acceptInviteAfterOAuth } from "@/lib/invites.functions";
 
 const APP_URL = (import.meta.env.VITE_APP_URL || "https://mente-lucrativa.lovable.app").replace(/\/$/, "");
 
@@ -32,8 +33,20 @@ function AuthPage() {
 
   // If already signed in, bounce to dashboard
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const token = sessionStorage.getItem("lucro-real-convite");
+      if (token) {
+        const accepted = await acceptInviteAfterOAuth({ data: { token } });
+        if (accepted.ok) sessionStorage.removeItem("lucro-real-convite");
+      }
+      const { data: profile } = await supabase.from("profiles").select("id").maybeSingle();
+      if (profile) {
+        navigate({ to: "/" });
+      } else {
+        await supabase.auth.signOut();
+        toast.error("Esta conta ainda não possui um convite válido.");
+      }
     });
   }, [navigate]);
 
