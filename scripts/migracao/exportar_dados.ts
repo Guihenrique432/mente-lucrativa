@@ -36,8 +36,8 @@ for (const tabela of TABELAS_PUBLICAS) {
 
   contagens[tabela] = linhas.length;
   await writeFile(join(pastaDados, `${tabela}.json`), JSON.stringify(linhas, null, 2));
-  if (tabela !== "push_subscriptions") {
-    for (const linha of linhas) sql += criarInsert(tabela, linha);
+  if (tabela !== "push_subscriptions" && linhas.length > 0) {
+    sql += criarInsert(tabela, linhas);
   }
   console.log(`${tabela}: ${linhas.length}`);
 }
@@ -82,23 +82,12 @@ await writeFile(
 );
 console.log(`Exportação concluída em ${pasta}`);
 
-function criarInsert(tabela: string, linha: Record<string, unknown>) {
-  const colunas = Object.keys(linha);
-  if (colunas.length === 0) return "";
-  const nomes = colunas.map(identificador).join(", ");
-  const valores = colunas.map((coluna) => valorSql(linha[coluna])).join(", ");
-  return `INSERT INTO public.${identificador(tabela)} (${nomes}) VALUES (${valores}) ON CONFLICT DO NOTHING;\n`;
+function criarInsert(tabela: string, linhas: Record<string, unknown>[]) {
+  const json = JSON.stringify(linhas).replaceAll("'", "''");
+  const nome = identificador(tabela);
+  return `INSERT INTO public.${nome} SELECT * FROM jsonb_populate_recordset(NULL::public.${nome}, '${json}'::jsonb) ON CONFLICT DO NOTHING;\n`;
 }
 
 function identificador(valor: string) {
   return `"${valor.replaceAll('"', '""')}"`;
-}
-
-function valorSql(valor: unknown): string {
-  if (valor === null || valor === undefined) return "NULL";
-  if (typeof valor === "boolean") return valor ? "TRUE" : "FALSE";
-  if (typeof valor === "number") return Number.isFinite(valor) ? String(valor) : "NULL";
-  if (Array.isArray(valor)) return `ARRAY[${valor.map(valorSql).join(", ")}]`;
-  if (typeof valor === "object") return `'${JSON.stringify(valor).replaceAll("'", "''")}'::jsonb`;
-  return `'${String(valor).replaceAll("'", "''")}'`;
 }
