@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "vite build --config vite.config.vercel.ts",
+  "crons": [
+    {
+      "path": "/api/public/hooks/notificacao-diaria",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

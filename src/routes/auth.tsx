@@ -5,6 +5,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { Sparkles, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
+const APP_URL = (import.meta.env.VITE_APP_URL || "https://mente-lucrativa.lovable.app").replace(/\/$/, "");
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -12,11 +14,11 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesse sua conta no Lucro Real e veja a saúde do seu negócio." },
       { property: "og:title", content: "Entrar — Lucro Real" },
       { property: "og:description", content: "Acesse sua conta no Lucro Real e veja a saúde do seu negócio." },
-      { property: "og:url", content: "https://mente-lucrativa.lovable.app/auth" },
+      { property: "og:url", content: `${APP_URL}/auth` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://mente-lucrativa.lovable.app/auth" }],
+    links: [{ rel: "canonical", href: `${APP_URL}/auth` }],
   }),
   ssr: false,
   component: AuthPage,
@@ -69,9 +71,15 @@ function AuthPage() {
   async function handleGoogle() {
     setGoogleLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
+      if (import.meta.env.VITE_AUTH_MODE === "supabase") {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: `${window.location.origin}/auth` },
+        });
+        if (error) throw error;
+        return;
+      }
+      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
       if (result.error) {
         toast.error("Não foi possível entrar com Google. Tente novamente.");
         setGoogleLoading(false);
@@ -88,9 +96,15 @@ function AuthPage() {
   async function handleApple() {
     setAppleLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: window.location.origin,
-      });
+      if (import.meta.env.VITE_AUTH_MODE === "supabase") {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "apple",
+          options: { redirectTo: `${window.location.origin}/auth` },
+        });
+        if (error) throw error;
+        return;
+      }
+      const result = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
       if (result.error) {
         toast.error("Não foi possível entrar com Apple. Tente novamente.");
         setAppleLoading(false);
