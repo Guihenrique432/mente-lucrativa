@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
-import { Sparkles, Mail, Lock, Loader2, ArrowRight } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 const APP_URL = (import.meta.env.VITE_APP_URL || "https://mente-lucrativa.lovable.app").replace(/\/$/, "");
 
@@ -27,9 +27,6 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
@@ -39,34 +36,6 @@ function AuthPage() {
       if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
-
-
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2") {
-        navigate({ to: "/auth/2fa" });
-      } else {
-        toast.success("Bem-vindo de volta!");
-        navigate({ to: "/" });
-      }
-
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Algo deu errado";
-      const friendly =
-        msg.includes("Invalid login") ? "Email ou senha incorretos"
-        : msg.includes("already registered") ? "Este email já tem conta. Faça login."
-        : msg.includes("Password should") ? "A senha precisa ter pelo menos 6 caracteres"
-        : msg;
-      toast.error(friendly);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleGoogle() {
     setGoogleLoading(true);
@@ -151,7 +120,7 @@ function AuthPage() {
           <div className="space-y-2.5">
             <button
               onClick={handleGoogle}
-              disabled={googleLoading || loading}
+              disabled={googleLoading || appleLoading}
               className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary disabled:opacity-60"
             >
               {googleLoading ? (
@@ -164,7 +133,7 @@ function AuthPage() {
 
             <button
               onClick={handleApple}
-              disabled={appleLoading || loading}
+              disabled={appleLoading || googleLoading}
               className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary disabled:opacity-60"
             >
               {appleLoading ? (
@@ -175,63 +144,6 @@ function AuthPage() {
               Continuar com Apple
             </button>
           </div>
-
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              ou
-            </span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-
-          <form onSubmit={handleEmailSubmit} className="space-y-3">
-
-            <Field
-              label="Email"
-              icon={<Mail className="h-4 w-4" />}
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="voce@email.com"
-              required
-            />
-            <Field
-              label="Senha"
-              icon={<Lock className="h-4 w-4" />}
-              type="password"
-              value={password}
-              onChange={setPassword}
-              placeholder="Mínimo 6 caracteres"
-              required
-              minLength={6}
-            />
-            <div className="flex justify-end -mt-1">
-              <Link
-                to="/forgot-password"
-                className="text-xs font-semibold text-accent hover:underline"
-              >
-                Esqueci minha senha
-              </Link>
-            </div>
-
-
-
-            <button
-              type="submit"
-              disabled={loading || googleLoading || appleLoading}
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold text-primary-foreground transition disabled:opacity-60"
-              style={{ background: "var(--gradient-hero)", boxShadow: "var(--shadow-pop)" }}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Entrar
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </button>
-          </form>
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
             O Lucro Real é privado: novas contas só com convite.
@@ -245,44 +157,6 @@ function AuthPage() {
 
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  icon,
-  value,
-  onChange,
-  type = "text",
-  placeholder,
-  required,
-  minLength,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
-  minLength?: number;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-3.5 py-3 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
-        <span className="text-muted-foreground">{icon}</span>
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          required={required}
-          minLength={minLength}
-          className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-        />
-      </div>
-    </label>
   );
 }
 
