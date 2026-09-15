@@ -1,145 +1,103 @@
-# Guia de migração: sair do Lovable Cloud
+# Migração completa do Lucro Real
 
-Este pacote contém tudo o que você precisa para recriar o banco de dados e hospedar o app fora do Lovable Cloud.
+Este pacote transfere os usuários e os dados para um projeto Supabase próprio e publica o aplicativo na Vercel. A origem não é apagada.
 
-## Arquivos incluídos
+## Arquivos
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `scripts/migracao/schema_completo.sql` | Estrutura completa do banco (tabelas, enums, funções, triggers, RLS, policies). |
-| `scripts/migracao/exportar_dados.ts` | Script que exporta os dados das tabelas `public.*` do Supabase atual. |
-| `scripts/migracao/importar_usuarios.ts` | Script que recria os usuários de autenticação no novo Supabase. |
-| `.env.example` | Modelo das variáveis de ambiente para apontar o app para o novo Supabase. |
-| `vite.config.vercel.ts` | Configuração de build para hospedar o app na Vercel. |
-| `scripts/migracao/README_MIGRACAO.md` | Este guia. |
+- `schema_completo.sql`: estrutura limpa, sem usuário fundador ou lembrete fixo.
+- `exportar_dados.ts`: exporta todas as tabelas em páginas, os 6 usuários e um manifesto.
+- `importar_usuarios.ts`: recria usuários no destino preservando UUIDs.
+- `importar_dados.ts`: carrega dados com gatilhos suspensos na transação.
+- `pos_importacao.sql`: reforça papéis, gatilhos e unicidade dos lembretes.
+- `validar_migracao.ts`: compara as contagens do destino com o manifesto.
+- `configurar_agendamento.sql.example`: agenda lembretes a cada 5 minutos.
+- `inventario_origem.json`: fotografia de referência da origem.
 
-## Plataformas recomendadas
+Por padrão, a exportação é gravada em `/mnt/documents/export/lucro-real`. Defina `MIGRATION_OUTPUT_DIR` para usar outra pasta. Nunca versionar essa pasta: ela contém dados pessoais.
 
-- **Banco de dados:** Supabase próprio (plano Free ou pago).
-- **Frontend:** Vercel (plano Hobby/Free).
+## 1. Janela de corte
 
-> Atenção: o plano Free do Supabase pausa o banco após 7 dias sem uso. Para uso diário, considere o plano pago.
+Avise os usuários para não fazer lançamentos durante a cópia final. Mantenha a origem disponível e sem alterações até concluir todos os testes.
 
-## Passo a passo
+## 2. Criar a estrutura no destino
 
-### 1. Criar o novo projeto no Supabase
+No editor SQL do projeto novo, execute `schema_completo.sql`. A estrutura não cria usuários, administrador ou dados de exemplo.
 
-1. Acesse [supabase.com](https://supabase.com) e crie uma conta.
-2. Crie um novo projeto.
-3. Anote:
-   - Project URL
-   - anon/public key
-   - service role key (Settings > API)
+## 3. Exportar a origem
 
-### 2. Importar a estrutura do banco
-
-1. No SQL Editor do novo projeto, cole o conteúdo de `schema_completo.sql`.
-2. Execute. Isso criará todas as tabelas, policies, triggers e funções.
-
-### 3. Exportar os dados do banco atual (Lovable Cloud)
-
-O banco atual precisa estar ativo para exportar. Se ele estiver pausado, você precisa religá-lo manualmente nas configurações do Cloud.
-
-Com o banco ativo, rode a partir da pasta raiz do projeto:
+Use as credenciais administrativas da origem somente no terminal:
 
 ```bash
-SUPABASE_URL=https://rnoxsjmiykmrptoeolit.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=<sua-chave-service-role-do-Lovable> \
+SUPABASE_URL='...' \
+SUPABASE_SERVICE_ROLE_KEY='...' \
 bun scripts/migracao/exportar_dados.ts
 ```
 
-Isso gera a pasta `dados/` com um JSON por tabela e o arquivo `dados_publicos.sql`.
+O exportador gera JSON por tabela, `auth_users.json`, `dados_publicos.export.sql` e `manifesto.json`. Senhas, sessões, identidades OAuth e MFA não são copiadas.
 
-### 4. Migrar os usuários de autenticação
-
-As senhas não podem ser copiadas de um Supabase para outro. Por isso, os usuários precisam ser recriados e redefinir a senha depois.
-
-No banco antigo, execute uma migration temporária para copiar os usuários:
-
-```sql
-CREATE TABLE public.migration_auth_users AS
-SELECT id, email, email_confirmed_at, phone, raw_user_meta_data
-FROM auth.users;
-
-GRANT SELECT ON public.migration_auth_users TO service_role;
-```
-
-Depois exporte essa tabela junto com as demais (o script `exportar_dados.ts` já a incluirá se ela estiver no schema).
-
-No novo Supabase, rode a partir da pasta raiz do projeto:
+## 4. Recriar os usuários
 
 ```bash
-NOVO_SUPABASE_URL=<url-do-novo> \
-NOVO_SUPABASE_SERVICE_ROLE_KEY=<chave-service-role-do-novo> \
-bun scripts/migracao/importar_usuarios.ts scripts/migracao/dados/migration_auth_users.json
+NOVO_SUPABASE_URL='...' \
+NOVO_SUPABASE_SERVICE_ROLE_KEY='...' \
+bun scripts/migracao/importar_usuarios.ts
 ```
 
-### 5. Importar os dados públicos
+Os UUIDs são preservados. O script pode ser executado novamente: usuários existentes são ignorados. Google e Apple criarão a identidade social no primeiro acesso com o mesmo e-mail confirmado. Contas Apple que escondem o e-mail devem ser vinculadas manualmente pelo Perfil.
 
-Com os usuários já criados no novo Supabase, execute no SQL Editor:
+## 5. Importar os dados
 
-```sql
--- Cole o conteúdo de dados_publicos.sql
+Use a conexão PostgreSQL direta do projeto novo:
+
+```bash
+NOVO_SUPABASE_DB_URL='postgresql://...' \
+bun scripts/migracao/importar_dados.ts
 ```
 
-Se preferir importar via script em vez de SQL, você pode usar o próprio `supabase-js` com a service role key para inserir os JSONs.
+A carga usa uma única transação e `session_replication_role = replica`, impedindo que os gatilhos dupliquem o histórico, alterem estoque ou recalculem planos. Cada `INSERT` usa `ON CONFLICT DO NOTHING`, permitindo repetição segura. `push_subscriptions` não é importada porque pertence ao domínio antigo.
 
-### 6. Configurar autenticação social
+Depois, execute `pos_importacao.sql` no editor SQL do destino.
 
-No novo Supabase, vá em **Authentication > Providers** e ative:
+## 6. Configurar Google e Apple
 
-- Email
-- Google
-- Apple
+Ative apenas Google e Apple no Auth do projeto novo. Cadastre como URLs permitidas:
 
-Para Google e Apple, você precisará criar credenciais nos painéis deles e colar no Supabase.
+- `https://SEU-DOMINIO/auth`
+- `https://SEU-PROJETO.vercel.app/auth`
+- `http://localhost:3000/auth` somente para desenvolvimento
 
-O URL de redirecionamento (callback) deve ser o domínio novo do app, por exemplo:
+No provedor Google e no Apple Developer, use a URL de callback exibida pelo novo Supabase. Não use a URL antiga da Lovable. O aplicativo usa OAuth nativo quando `VITE_AUTH_MODE=supabase`.
 
+## 7. Configurar Vercel
+
+Importe o repositório na Vercel. O `vercel.json` já seleciona a compilação correta. Cadastre todas as variáveis de `.env.example` nos ambientes Production e Preview. Variáveis `VITE_*` são públicas; `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` e `VAPID_PRIVATE_KEY` são somente do servidor.
+
+O endereço final deve ser colocado em `VITE_APP_URL`. Depois de publicar, inclua esse endereço nas URLs permitidas do Auth.
+
+## 8. Recriar lembretes
+
+Gere um `CRON_SECRET` forte, use o mesmo valor na Vercel e em uma cópia privada de `configurar_agendamento.sql.example`, substitua `<URL_DO_APP>` e execute no destino. O agendamento chama o aplicativo a cada 5 minutos; cada usuário mantém seus próprios horários e dias.
+
+As chaves VAPID podem permanecer as mesmas, mas cada usuário precisa autorizar notificações novamente no novo domínio.
+
+## 9. Validar
+
+```bash
+NOVO_SUPABASE_URL='...' \
+NOVO_SUPABASE_SERVICE_ROLE_KEY='...' \
+bun scripts/migracao/validar_migracao.ts
 ```
-https://seu-app.vercel.app/auth/callback
-```
 
-### 7. Preparar o app para o novo backend
+Além das contagens, teste com dois usuários diferentes:
 
-No projeto, crie um arquivo `.env` baseado em `.env.example` (já incluído no código) com as credenciais do novo Supabase.
+1. Login Google e Apple.
+2. Receitas, despesas, metas, estoque e contratos.
+3. Perfil financeiro, Visão e Sofia.
+4. Convites privados e papel de administrador.
+5. Relatórios e exportação CSV.
+6. Criação, pausa e clique de lembretes.
+7. Confirme que um usuário não lê dados do outro.
 
-As variáveis que precisam mudar são:
+## 10. Troca e retorno
 
-```env
-SUPABASE_URL=https://<novo>.supabase.co
-SUPABASE_PUBLISHABLE_KEY=<anon-key-do-novo>
-SUPABASE_PROJECT_ID=<id-do-novo>
-VITE_SUPABASE_URL=https://<novo>.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<anon-key-do-novo>
-VITE_SUPABASE_PROJECT_ID=<id-do-novo>
-```
-
-A `SUPABASE_SERVICE_ROLE_KEY` também deve ser a do novo projeto, mas só no servidor (Vercel).
-
-### 8. Hospedar na Vercel
-
-1. Crie uma conta em [vercel.com](https://vercel.com).
-2. Importe o repositório Git (GitHub/GitLab).
-3. Nas configurações do projeto Vercel, defina:
-   - **Build Command:** `vite build --config vite.config.vercel.ts`
-   - **Output Directory:** deixe em branco (o Nitro gerencia)
-4. Adicione as variáveis de ambiente do novo Supabase.
-5. Faça o deploy.
-
-O arquivo `vite.config.vercel.ts` já está configurado para o preset `vercel` do Nitro.
-
-### 9. Testar
-
-- Crie um novo usuário no app hospedado na Vercel.
-- Faça login com e-mail e com Google/Apple.
-- Verifique se os dados antigos aparecem para usuários existentes.
-- Teste cadastro de receita, despesa, produto, contrato e lembrete.
-
-### 10. Domínio
-
-O endereço atual `mente-lucrativa.lovable.app` pertence à Lovable. Para manter o mesmo nome, você precisa de um domínio próprio e apontá-lo para a Vercel. Caso contrário, o app ficará em `https://<nome>-<id>.vercel.app`.
-
-## Suporte
-
-Se o banco atual continuar pausado e você não conseguir exportar os dados, a única saída é religá-lo manualmente nas configurações do Lovable Cloud. Sem isso, não é possível copiar os dados antigos.
+Quando tudo estiver aprovado, faça uma última exportação durante uma nova janela sem lançamentos, repita importação e validação e publique a Vercel. Se qualquer teste falhar, mantenha o endereço antigo como principal e não grave novos dados no destino até corrigir.
