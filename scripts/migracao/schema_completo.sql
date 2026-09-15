@@ -56,9 +56,8 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+-- O perfil é criado somente após um convite OAuth ser aceito pelo aplicativo.
+-- Não criar trigger em auth.users: isso impediria o controle de acesso privado.
 
 -- =========== RECEITAS ===========
 CREATE TABLE public.receitas (
@@ -381,11 +380,6 @@ AS $$
   )
 $$;
 
--- Fundador
-INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin'::public.app_role FROM auth.users WHERE email = 'guilhermecandido1505@gmail.com'
-ON CONFLICT (user_id, role) DO NOTHING;
-
 -- Convites
 DO $$ BEGIN
   CREATE TYPE public.invite_status AS ENUM ('pending', 'used', 'expired', 'revoked');
@@ -436,7 +430,7 @@ GRANT EXECUTE ON FUNCTION public.expirar_assinaturas() TO service_role;CREATE OR
 RETURNS boolean
 LANGUAGE sql
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
   SELECT EXISTS (
@@ -524,8 +518,8 @@ CREATE TRIGGER preferencias_notificacao_set_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 ALTER TABLE public.notificacoes_diarias ADD COLUMN IF NOT EXISTS horario text NOT NULL DEFAULT '21:30';
-CREATE UNIQUE INDEX IF NOT EXISTS notificacoes_diarias_slot_uidx
-  ON public.notificacoes_diarias (user_id, data, canal, horario);
+ALTER TABLE public.notificacoes_diarias
+  DROP CONSTRAINT IF EXISTS notificacoes_diarias_user_id_data_canal_key;
 
 ALTER TABLE public.notificacao_execucoes ADD COLUMN IF NOT EXISTS horario text NOT NULL DEFAULT '21:30';
 ALTER TABLE public.notificacao_execucoes DROP CONSTRAINT IF EXISTS notificacao_execucoes_pkey;
@@ -669,8 +663,5 @@ CREATE TRIGGER lembretes_set_updated_at BEFORE UPDATE ON public.lembretes
 CREATE INDEX lembretes_user_idx ON public.lembretes(user_id);
 
 ALTER TABLE public.notificacoes_diarias ADD COLUMN IF NOT EXISTS lembrete_id uuid;
-
-INSERT INTO public.lembretes (user_id, horario, assunto)
-SELECT p.user_id, h, 'lucro'
-FROM public.preferencias_notificacao p, unnest(p.horarios) AS h
-WHERE h ~ '^[0-2][0-9]:[0-5][0-9]$';
+CREATE UNIQUE INDEX IF NOT EXISTS notificacoes_diarias_slot_uidx
+  ON public.notificacoes_diarias (user_id, data, canal, horario, COALESCE(lembrete_id, '00000000-0000-0000-0000-000000000000'::uuid));

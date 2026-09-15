@@ -1,0 +1,22 @@
+-- Substitua os três valores entre <...> e execute no projeto de destino.
+-- O endpoint valida o segredo antes de processar qualquer notificação.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+SELECT cron.unschedule('lucro-real-lembretes-5min')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'lucro-real-lembretes-5min');
+
+SELECT cron.schedule(
+  'lucro-real-lembretes-5min',
+  '*/5 * * * *',
+  $cron$
+  SELECT net.http_post(
+    url := '<URL_DO_APP>/api/public/hooks/notificacao-diaria',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <CRON_SECRET>'
+    ),
+    body := '{}'::jsonb
+  );
+  $cron$
+);

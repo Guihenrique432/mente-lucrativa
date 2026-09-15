@@ -1,53 +1,51 @@
 #!/usr/bin/env bun
-// Recria os usuários de autenticação no novo Supabase a partir de um JSON.
-// Uso:
-//   NOVO_SUPABASE_URL=<url> NOVO_SUPABASE_SERVICE_ROLE_KEY=<key> bun importar_usuarios.ts
-//
-// O JSON de entrada deve ter sido gerado previamente a partir de auth.users,
-// por exemplo com uma migration temporária no banco antigo:
-//   CREATE TABLE public.migration_auth_users AS
-//   SELECT id, email, email_confirmed_at, phone, raw_user_meta_data
-//   FROM auth.users;
-//
-// Depois de rodar este script, os usuários poderão fazer login usando
-// "Esqueci a senha" no novo app, pois as senhas não são migráveis.
-
 import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { exigirVariavel, pastaPadrao } from "./config";
 
-const url = process.env["NOVO_SUPABASE_URL"];
-const key = process.env["NOVO_SUPABASE_SERVICE_ROLE_KEY"];
+type UsuarioExportado = {
+  id: string;
+  email: string | null;
+  email_confirmed_at: string | null;
+  phone: string | null;
+  user_metadata: Record<string, unknown>;
+};
 
-if (!url || !key) {
-  console.error("Erro: defina NOVO_SUPABASE_URL e NOVO_SUPABASE_SERVICE_ROLE_KEY");
-  process.exit(1);
-}
+const supabase = createClient(
+  exigirVariavel("NOVO_SUPABASE_URL"),
+  exigirVariavel("NOVO_SUPABASE_SERVICE_ROLE_KEY"),
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
+const caminho = process.argv[2] || join(pastaPadrao(), "dados", "auth_users.json");
+const usuarios = JSON.parse(await readFile(caminho, "utf8")) as UsuarioExportado[];
+let criados = 0;
+let existentes = 0;
 
-const supabase = createClient(url, key, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-const caminho = process.argv[2] || join(import.meta.dir, "dados", "migration_auth_users.json");
-const raw = await readFile(caminho, "utf8");
-const usuarios = JSON.parse(raw) as Array<Record<string, unknown>>;
-
-for (const u of usuarios) {
-  const { data, error } = await supabase.auth.admin.createUser({
-    id: u.id as string,
-    email: u.email as string,
-    email_confirm: Boolean(u.email_confirmed_at),
-    phone: (u.phone as string) || undefined,
-    user_metadata: (u.raw_user_meta_data as object) || {},
-    app_metadata: { provider: "email", providers: ["email"] },
-  });
-
-  if (error) {
-    console.error("Falha ao criar", u.email, ":", error.message);
-  } else {
-    console.log("Criado:", data.user?.email || u.email);
+for (const usuario of usuarios) {
+  if (!usuario.id || !usuario.email) {
+    console.warn(`Ignorado usuário sem UUID/e-mail: ${usuario.id || "sem UUID"}`);
+    continue;
   }
+  const { error } = await supabase.auth.admin.createUser({
+    id: usuario.id,
+    email: usuario.email,
+    email_confirm: Boolean(usuario.email_confirmed_at),
+    phone: usuario.phone || undefined,
+    user_metadata: usuario.user_metadata || {},
+  });
+  if (!error) {
+    criados++;
+    console.log(`Criado: ${usuario.email}`);
+    continue;
+  }
+  if (/already|registered|exists/i.test(error.message)) {
+    existentes++;
+    console.log(`Já existente: ${usuario.email}`);
+    continue;
+  }
+  throw new Error(`Falha ao criar ${usuario.email}: ${error.message}`);
 }
 
-console.log("\nImportação de usuários finalizada.");
-console.log("Avise os usuários para redefinir a senha no primeiro acesso.");
+console.log(`Usuários concluídos: ${criados} criados, ${existentes} já existentes.`);
+console.log("No primeiro acesso, cada pessoa deve usar Google ou Apple com o mesmo e-mail confirmado.");

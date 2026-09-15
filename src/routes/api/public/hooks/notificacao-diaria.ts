@@ -48,13 +48,23 @@ function json(body: unknown, status = 200) {
 export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
+      GET: async ({ request }) => processarNotificacoes(request),
+      POST: async ({ request }) => processarNotificacoes(request),
+    },
+  },
+});
+
+async function processarNotificacoes(request: Request) {
+        const authHeader = request.headers.get("authorization");
+        const cronSecret = process.env["CRON_SECRET"];
         const apiKey = request.headers.get("apikey");
         const chavesValidas = [
           process.env["SUPABASE_ANON_KEY"],
           process.env["SUPABASE_PUBLISHABLE_KEY"],
         ].filter(Boolean);
-        if (!apiKey || !chavesValidas.includes(apiKey)) {
+        const cronValido = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+        const apiKeyValida = Boolean(apiKey && chavesValidas.includes(apiKey));
+        if (!cronValido && !apiKeyValida) {
           return json({ error: "Não autorizado" }, 401);
         }
 
@@ -206,7 +216,4 @@ export const Route = createFileRoute("/api/public/hooks/notificacao-diaria")({
           .eq("horario", slot);
 
         return json({ success: true, slot, enviados, falhas, removidos, ignorados });
-      },
-    },
-  },
-});
+}

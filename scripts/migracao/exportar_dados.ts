@@ -1,98 +1,93 @@
 #!/usr/bin/env bun
-// Script para exportar os dados das tabelas public.* do Supabase atual.
-// Uso:
-//   SUPABASE_URL=<url> SUPABASE_SERVICE_ROLE_KEY=<key> bun exportar_dados.ts
-//
-// O script gera:
-//   - export/dados/<tabela>.json   -> um JSON por tabela
-//   - export/dados_publicos.sql    -> INSERTs prontos para importação
-//
-// IMPORTANTE: este script NÃO exporta a tabela auth.users.
-// Os usuários de autenticação precisam ser recriados no novo Supabase
-// (via admin API ou redefinição de senha) para que os dados antigos
-// continuem vinculados aos mesmos UUIDs.
-
 import { createClient } from "@supabase/supabase-js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { exigirVariavel, pastaPadrao, TAMANHO_PAGINA, TABELAS_PUBLICAS } from "./config";
 
-const url = process.env["SUPABASE_URL"];
-const key = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+const supabase = createClient(
+  exigirVariavel("SUPABASE_URL"),
+  exigirVariavel("SUPABASE_SERVICE_ROLE_KEY"),
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
+const pasta = pastaPadrao();
+const pastaDados = join(pasta, "dados");
+await mkdir(pastaDados, { recursive: true });
 
-if (!url || !key) {
-  console.error("Erro: defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY");
-  process.exit(1);
+const contagens: Record<string, number> = {};
+let sql = [
+  "-- Carga pública do Lucro Real.",
+  "-- Execute depois de criar os usuários com importar_usuarios.ts.",
+  "BEGIN;",
+  "SET LOCAL session_replication_role = replica;",
+  "",
+].join("\n");
+
+for (const tabela of TABELAS_PUBLICAS) {
+  const linhas: Record<string, unknown>[] = [];
+  for (let inicio = 0; ; inicio += TAMANHO_PAGINA) {
+    const { data, error } = await supabase
+      .from(tabela)
+      .select("*")
+      .range(inicio, inicio + TAMANHO_PAGINA - 1);
+    if (error) throw new Error(`Falha ao exportar ${tabela}: ${error.message}`);
+    linhas.push(...((data ?? []) as Record<string, unknown>[]));
+    if (!data || data.length < TAMANHO_PAGINA) break;
+  }
+
+  contagens[tabela] = linhas.length;
+  await writeFile(join(pastaDados, `${tabela}.json`), JSON.stringify(linhas, null, 2));
+  if (tabela !== "push_subscriptions" && linhas.length > 0) {
+    sql += criarInsert(tabela, linhas);
+  }
+  console.log(`${tabela}: ${linhas.length}`);
 }
 
-const supabase = createClient(url, key, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-// Ordem respeita dependências simples (tabelas pai primeiro).
-const tabelas = [
-  "profiles",
-  "perfil_financeiro",
-  "user_roles",
-  "metas",
-  "preferencias_notificacao",
-  "lembretes",
-  "produtos",
-  "receitas",
-  "despesas",
-  "movimentacoes_estoque",
-  "contratos",
-  "contratos_recebimentos",
-  "historico_lancamentos",
-  "push_subscriptions",
-  "notificacoes_diarias",
-  "notificacao_execucoes",
-  "invitations",
-];
-
-const pastaSaida = join(import.meta.dir, "dados");
-await mkdir(pastaSaida, { recursive: true });
-
-let sqlTotal = "-- Dados exportados das tabelas public.*\n";
-sqlTotal += "-- Execute este arquivo no SQL Editor do novo Supabase.\n";
-sqlTotal += "-- Lembre-se: os usuários auth.users devem existir primeiro.\n\n";
-
-for (const tabela of tabelas) {
-  process.stdout.write(`Exportando ${tabela}... `);
-  const { data, error } = await supabase.from(tabela).select("*").limit(100000);
-
-  if (error) {
-    console.error("ERRO", error.message);
-    continue;
-  }
-
-  if (!data || data.length === 0) {
-    console.log("vazio");
-    continue;
-  }
-
-  await writeFile(join(pastaSaida, `${tabela}.json`), JSON.stringify(data, null, 2));
-
-  const colunas = Object.keys(data[0]);
-  for (const row of data) {
-    const valores = colunas.map((col) => formatarValor(row[col]));
-    sqlTotal += `INSERT INTO public.${tabela} (${colunas.join(", ")}) VALUES (${valores.join(", ")});\n`;
-  }
-
-  console.log(`${data.length} linhas`);
+const usuarios: Record<string, unknown>[] = [];
+for (let pagina = 1; ; pagina++) {
+  const { data, error } = await supabase.auth.admin.listUsers({ page: pagina, perPage: 1_000 });
+  if (error) throw new Error(`Falha ao listar usuários: ${error.message}`);
+  usuarios.push(
+    ...data.users.map((usuario) => ({
+      id: usuario.id,
+      email: usuario.email ?? null,
+      email_confirmed_at: usuario.email_confirmed_at ?? null,
+      phone: usuario.phone ?? null,
+      user_metadata: usuario.user_metadata ?? {},
+      providers: usuario.app_metadata?.providers ?? [],
+      created_at: usuario.created_at,
+    })),
+  );
+  if (data.users.length < 1_000) break;
 }
 
-await writeFile(join(import.meta.dir, "dados_publicos.sql"), sqlTotal);
-console.log("\nExportação concluída. Arquivos em:", pastaSaida);
-console.log("SQL gerado:", join(import.meta.dir, "dados_publicos.sql"));
+await writeFile(join(pastaDados, "auth_users.json"), JSON.stringify(usuarios, null, 2));
+sql += "\nSET LOCAL session_replication_role = origin;\nCOMMIT;\n";
+await writeFile(join(pasta, "dados_publicos.export.sql"), sql);
+await writeFile(
+  join(pasta, "manifesto.json"),
+  JSON.stringify(
+    {
+      versao: 2,
+      exportado_em: new Date().toISOString(),
+      usuarios: usuarios.length,
+      tabelas: contagens,
+      observacoes: [
+        "Senhas, fatores MFA e tokens OAuth não são exportados.",
+        "push_subscriptions foi preservada para auditoria, mas não deve ser importada.",
+      ],
+    },
+    null,
+    2,
+  ),
+);
+console.log(`Exportação concluída em ${pasta}`);
 
-function formatarValor(valor: unknown): string {
-  if (valor === null || valor === undefined) return "NULL";
-  if (typeof valor === "boolean") return valor ? "TRUE" : "FALSE";
-  if (typeof valor === "number") return String(valor);
-  if (Array.isArray(valor)) {
-    const itens = valor.map((v) => (typeof v === "number" ? String(v) : `"${String(v).replace(/"/g, '\\"')}"`));
-    return "ARRAY[" + itens.join(",") + "]";
-  }
-  if (typeof valor === "object") return "'" + JSON.stringify(valor).replace(/'/g, "''") + "'::jsonb";
-  return "'" + String(valor).replace(/'/g, "''") + "'";
+function criarInsert(tabela: string, linhas: Record<string, unknown>[]) {
+  const json = JSON.stringify(linhas).replaceAll("'", "''");
+  const nome = identificador(tabela);
+  return `INSERT INTO public.${nome} SELECT * FROM jsonb_populate_recordset(NULL::public.${nome}, '${json}'::jsonb) ON CONFLICT DO NOTHING;\n`;
+}
+
+function identificador(valor: string) {
+  return `"${valor.replaceAll('"', '""')}"`;
 }

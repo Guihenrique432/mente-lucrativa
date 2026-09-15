@@ -1,0 +1,24 @@
+{
+  "capturado_em": "2026-09-15",
+  "usuarios": 6,
+  "tabelas": {
+    "profiles": 6,
+    "perfil_financeiro": 1,
+    "user_roles": 1,
+    "metas": 4,
+    "preferencias_notificacao": 1,
+    "lembretes": 1,
+    "produtos": 0,
+    "receitas": 9,
+    "despesas": 17,
+    "movimentacoes_estoque": 0,
+    "contratos": 0,
+    "contratos_recebimentos": 0,
+    "historico_lancamentos": 861,
+    "notificacoes_diarias": 37,
+    "notificacao_execucoes": 4549,
+    "invitations": 0,
+    "push_subscriptions": 2
+  },
+  "observacao": "As duas inscrições push pertencem ao domínio antigo e não serão importadas."
+}
