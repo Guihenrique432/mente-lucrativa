@@ -33,21 +33,46 @@ function AuthPage() {
 
   // If already signed in, bounce to dashboard
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
+    let active = true;
+
+    async function finishSignIn() {
       const token = sessionStorage.getItem("lucro-real-convite");
-      if (token) {
-        const accepted = await acceptInviteAfterOAuth({ data: { token } });
-        if (accepted.ok) sessionStorage.removeItem("lucro-real-convite");
-      }
-      const { data: profile } = await supabase.from("profiles").select("id").maybeSingle();
-      if (profile) {
-        navigate({ to: "/" });
-      } else {
+      try {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!data.session || !active) return;
+
+        if (token) {
+          const accepted = await acceptInviteAfterOAuth({ data: { token } });
+          if (accepted.ok) sessionStorage.removeItem("lucro-real-convite");
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .maybeSingle();
+        if (profileError) throw profileError;
+
+        if (profile) {
+          navigate({ to: "/" });
+          return;
+        }
+
+        sessionStorage.removeItem("lucro-real-convite");
         await supabase.auth.signOut();
-        toast.error("Esta conta ainda não possui um convite válido.");
+        if (active) toast.error("Esta conta ainda não possui um convite válido.");
+      } catch {
+        await supabase.auth.signOut();
+        if (!active) return;
+        toast.error("Não foi possível concluir o convite. Tente novamente.");
+        if (token) {
+          navigate({ to: "/convite/$token", params: { token }, replace: true });
+        }
       }
-    });
+    }
+
+    void finishSignIn();
+    return () => { active = false; };
   }, [navigate]);
 
   async function handleGoogle() {
