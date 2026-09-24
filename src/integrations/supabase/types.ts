@@ -683,6 +683,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_oauth_invite: {
+        Args: {
+          _email: string
+          _nome: string
+          _token_hash: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       expirar_assinaturas: { Args: never; Returns: undefined }
       has_role: {
         Args: {
