@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.accept_oauth_invite(text, uuid, text, text) TO authenticated;
