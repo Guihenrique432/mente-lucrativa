@@ -285,7 +285,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <section className="-mt-16 px-5">
+      <section className="relative z-10 -mt-16 px-5">
         <HealthCard status={stats.health} margem={stats.margem} />
       </section>
 
