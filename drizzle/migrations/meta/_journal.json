@@ -8,6 +8,13 @@
       "when": 1790273209004,
       "tag": "0000_accept_oauth_invite_atomically",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790273238343,
+      "tag": "0001_grant_authenticated_oauth_invite_acceptance",
+      "breakpoints": true
     }
   ]
 }
