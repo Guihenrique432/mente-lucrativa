@@ -222,8 +222,8 @@ export const acceptInviteAfterOAuth = createServerFn({ method: "POST" })
     const { data: accepted, error } = await context.supabase.rpc("accept_oauth_invite", {
       _token_hash: token_hash,
       _user_id: context.userId,
-      _email: user?.email ?? null,
-      _nome: nome,
+      _email: user?.email ?? "",
+      _nome: nome ?? "",
     });
     if (error) throw new Error("Não foi possível liberar o acesso do convite.");
     return { ok: accepted === true };
